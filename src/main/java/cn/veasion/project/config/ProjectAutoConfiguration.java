@@ -2,6 +2,7 @@ package cn.veasion.project.config;
 
 import cn.veasion.project.aspect.IgnoreCompanyIdAspect;
 import cn.veasion.project.aspect.LimitAspect;
+import cn.veasion.project.aspect.LogAspect;
 import cn.veasion.project.dao.CommonDao;
 import cn.veasion.project.dao.ReadWriteTransactionInterceptor;
 import cn.veasion.project.service.CacheServiceImpl;
@@ -30,7 +31,7 @@ import java.util.HashMap;
  * @date 2022/9/30
  */
 @Configuration
-@Import({SpringBeanUtils.class, IgnoreCompanyIdAspect.class})
+@Import({SpringBeanUtils.class, IgnoreCompanyIdAspect.class, LogAspect.class})
 public class ProjectAutoConfiguration {
 
     @Configuration
