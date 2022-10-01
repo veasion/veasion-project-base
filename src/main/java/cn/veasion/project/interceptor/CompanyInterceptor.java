@@ -7,6 +7,7 @@ import cn.veasion.db.update.Delete;
 import cn.veasion.project.model.ICompanyId;
 import cn.veasion.project.session.SessionHelper;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -23,9 +24,14 @@ public class CompanyInterceptor extends AbstractInterceptor {
     private static final String COMPANY_ID = "companyId";
 
     private static ThreadLocal<Boolean> skipThreadLocal = new ThreadLocal<>();
+    private static ThreadLocal<Long> companyThreadLocal = new ThreadLocal<>();
 
     public CompanyInterceptor() {
         super(true, true, true, true, false);
+    }
+
+    public static boolean isSkip() {
+        return Boolean.TRUE.equals(skipThreadLocal.get());
     }
 
     public static void skip(boolean skip) {
@@ -34,10 +40,6 @@ public class CompanyInterceptor extends AbstractInterceptor {
 
     public static void clearSkip() {
         skipThreadLocal.remove();
-    }
-
-    public static boolean isSkip() {
-        return Boolean.TRUE.equals(skipThreadLocal.get());
     }
 
     public static <R> R withSkip(Supplier<R> supplier) {
@@ -50,6 +52,20 @@ public class CompanyInterceptor extends AbstractInterceptor {
                 skipThreadLocal.set(flag);
             } else {
                 skipThreadLocal.remove();
+            }
+        }
+    }
+
+    public static <R> R withCompanyId(Long companyId, Supplier<R> supplier) {
+        Long oldCompanyId = companyThreadLocal.get();
+        try {
+            companyThreadLocal.set(companyId);
+            return supplier.get();
+        } finally {
+            if (oldCompanyId != null) {
+                companyThreadLocal.set(oldCompanyId);
+            } else {
+                companyThreadLocal.remove();
             }
         }
     }
@@ -91,8 +107,17 @@ public class CompanyInterceptor extends AbstractInterceptor {
     protected void handleInsert(Class<?> entityClass, List<?> entityList, List<Map<String, Object>> fieldValueMapList) {
     }
 
-    protected List<Long> companyIds() {
-        return SessionHelper.getAuthCompanyIds();
+    private List<Long> companyIds() {
+        Long companyId = companyThreadLocal.get();
+        if (companyId != null) {
+            return Arrays.asList(SessionHelper.DEFAULT_COMPANY_ID, companyId);
+        } else {
+            return SessionHelper.getAuthCompanyIds();
+        }
+    }
+
+    public static Long getThreadLocalCompanyId() {
+        return companyThreadLocal.get();
     }
 
 }

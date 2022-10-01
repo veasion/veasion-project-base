@@ -1,5 +1,6 @@
 package cn.veasion.project.aspect;
 
+import cn.veasion.project.BusinessException;
 import cn.veasion.project.session.SessionHelper;
 import cn.veasion.project.utils.RequestHolder;
 import cn.veasion.project.utils.StringUtils;
@@ -65,7 +66,7 @@ public class LimitAspect {
         if (null != count && count.longValue() <= limit.maxCount()) {
             return joinPoint.proceed();
         } else {
-            throw new RuntimeException("操作太频繁，请稍后再试");
+            throw new BusinessException("操作太频繁，请稍后再试");
         }
     }
 

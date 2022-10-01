@@ -7,8 +7,7 @@
 
     <groupId>cn.veasion</groupId>
     <artifactId>veasion-project-base</artifactId>
-    <version>1.0.0</version>
-
+    <version>1.0.1</version>
 
     <name>veasion-project-base</name>
     <url>https://github.com/veasion/veasion-project-base</url>

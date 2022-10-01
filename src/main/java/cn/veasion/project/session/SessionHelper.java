@@ -2,7 +2,7 @@ package cn.veasion.project.session;
 
 import cn.veasion.db.utils.ServiceLoaderUtils;
 
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -14,6 +14,7 @@ import java.util.function.Supplier;
  */
 public class SessionHelper {
 
+    public static final Long DEFAULT_COMPANY_ID = -1L;
     private static ISessionProvider sessionProvider;
     private static final ThreadLocal<ISessionUser> sessionUserHolder = new ThreadLocal<>();
 
@@ -83,7 +84,7 @@ public class SessionHelper {
         }
         List<Long> authCompanyIds = sessionUser.getAuthCompanyIds();
         if (authCompanyIds == null && sessionUser.getCompanyId() != null) {
-            return Collections.singletonList(sessionUser.getCompanyId());
+            return Arrays.asList(DEFAULT_COMPANY_ID, sessionUser.getCompanyId());
         } else {
             return authCompanyIds;
         }

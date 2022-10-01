@@ -4,14 +4,20 @@ import cn.veasion.project.aspect.IgnoreCompanyIdAspect;
 import cn.veasion.project.aspect.LimitAspect;
 import cn.veasion.project.aspect.LogAspect;
 import cn.veasion.project.dao.CommonDao;
+import cn.veasion.project.dao.ReadWriteDataSource;
 import cn.veasion.project.dao.ReadWriteTransactionInterceptor;
 import cn.veasion.project.service.CacheServiceImpl;
 import cn.veasion.project.utils.SpringBeanUtils;
 import org.springframework.aop.aspectj.AspectJExpressionPointcut;
 import org.springframework.aop.support.DefaultBeanFactoryPointcutAdvisor;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionManager;
 import org.springframework.transaction.interceptor.NameMatchTransactionAttributeSource;
@@ -40,12 +46,32 @@ public class ProjectAutoConfiguration {
     }
 
     @Bean
+    @Primary
+    @ConditionalOnMissingBean(name = "dataSource")
+    public ReadWriteDataSource dataSource(@Qualifier("readDataSource") DataSource readDataSource,
+                                          @Qualifier("writeDataSource") DataSource writeDataSource) {
+        ReadWriteDataSource readWriteDataSource = new ReadWriteDataSource();
+        readWriteDataSource.setRead(readDataSource);
+        readWriteDataSource.setWrite(writeDataSource);
+        return readWriteDataSource;
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(name = "commonDao")
     public CommonDao commonDao(DataSource dataSource) {
         return new CommonDao(dataSource);
     }
 
     @Bean
-    public DefaultBeanFactoryPointcutAdvisor defaultBeanFactoryPointcutAdvisor(TransactionManager transactionManager, AspectJExpressionPointcut servicePointcut) {
+    @ConditionalOnMissingBean(name = "transactionManager")
+    public PlatformTransactionManager transactionManager(@Qualifier("dataSource") DataSource dataSource) {
+        return new DataSourceTransactionManager(dataSource);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(name = "defaultBeanFactoryPointcutAdvisor")
+    public DefaultBeanFactoryPointcutAdvisor defaultBeanFactoryPointcutAdvisor(TransactionManager transactionManager,
+                                                                               @Qualifier("servicePointcut") AspectJExpressionPointcut servicePointcut) {
         DefaultBeanFactoryPointcutAdvisor advisor = new DefaultBeanFactoryPointcutAdvisor();
 
         NameMatchTransactionAttributeSource source = new NameMatchTransactionAttributeSource();
