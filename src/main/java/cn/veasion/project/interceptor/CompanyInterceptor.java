@@ -70,6 +70,16 @@ public class CompanyInterceptor extends AbstractInterceptor {
         }
     }
 
+    public static Long setCompanyId(Long companyId) {
+        Long oldCompanyId = companyThreadLocal.get();
+        companyThreadLocal.set(companyId);
+        return oldCompanyId;
+    }
+
+    public static void clearCompanyId() {
+        companyThreadLocal.remove();
+    }
+
     @Override
     protected boolean skip() {
         return Boolean.TRUE.equals(skipThreadLocal.get());

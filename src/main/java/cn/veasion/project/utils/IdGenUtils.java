@@ -40,4 +40,8 @@ public class IdGenUtils {
         return snowflake.nextIdStr();
     }
 
+    public static long genLongId() {
+        return snowflake.nextId();
+    }
+
 }
