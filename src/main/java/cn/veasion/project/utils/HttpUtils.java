@@ -116,7 +116,7 @@ public class HttpUtils {
         return request(request);
     }
 
-    private static String getUrlLinks(Map<String, Object> params) throws UnsupportedEncodingException {
+    public static String getUrlLinks(Map<String, Object> params) throws UnsupportedEncodingException {
         if (params != null && !params.isEmpty()) {
             StringBuilder sb = new StringBuilder();
             for (Map.Entry<String, Object> entry : params.entrySet()) {
