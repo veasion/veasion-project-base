@@ -18,4 +18,6 @@ public interface ISessionUser {
 
     List<Long> getAuthCompanyIds();
 
+    Object getOriginalUser();
+
 }

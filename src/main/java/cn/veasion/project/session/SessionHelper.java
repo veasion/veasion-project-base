@@ -22,10 +22,6 @@ public class SessionHelper {
         sessionProvider = ServiceLoaderUtils.loadOne(ISessionProvider.class);
     }
 
-    public static void clear() {
-        sessionUserHolder.remove();
-    }
-
     public static <R> R withUser(ISessionUser user, Supplier<R> supplier) {
         ISessionUser oldUser = sessionUserHolder.get();
         try {
@@ -44,17 +40,24 @@ public class SessionHelper {
         sessionUserHolder.set(user);
     }
 
-    @SuppressWarnings("unchecked")
-    public static <T extends ISessionUser> T getUser() {
-        T sessionUser = (T) sessionUserHolder.get();
+    public static void clear() {
+        sessionUserHolder.remove();
+    }
+
+    public static SimpleSessionUser copySessionUser() {
+        return new SimpleSessionUser(getSessionUser());
+    }
+
+    public static ISessionUser getSessionUser() {
+        ISessionUser sessionUser = sessionUserHolder.get();
         if (sessionUser == null && sessionProvider != null) {
-            sessionUser = (T) sessionProvider.getSessionUser();
+            sessionUser = sessionProvider.getSessionUser();
         }
         return sessionUser;
     }
 
     public static String getUserId() {
-        ISessionUser sessionUser = getUser();
+        ISessionUser sessionUser = getSessionUser();
         if (sessionUser == null) {
             return null;
         }
@@ -62,7 +65,7 @@ public class SessionHelper {
     }
 
     public static String getUserName() {
-        ISessionUser sessionUser = getUser();
+        ISessionUser sessionUser = getSessionUser();
         if (sessionUser == null) {
             return null;
         }
@@ -70,7 +73,7 @@ public class SessionHelper {
     }
 
     public static Long getCompanyId() {
-        ISessionUser sessionUser = getUser();
+        ISessionUser sessionUser = getSessionUser();
         if (sessionUser == null) {
             return null;
         }
@@ -78,7 +81,7 @@ public class SessionHelper {
     }
 
     public static List<Long> getAuthCompanyIds() {
-        ISessionUser sessionUser = getUser();
+        ISessionUser sessionUser = getSessionUser();
         if (sessionUser == null) {
             return null;
         }
@@ -88,6 +91,15 @@ public class SessionHelper {
         } else {
             return authCompanyIds;
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T> T getOriginalUser() {
+        ISessionUser sessionUser = getSessionUser();
+        if (sessionUser == null) {
+            return null;
+        }
+        return (T) sessionUser.getOriginalUser();
     }
 
 }

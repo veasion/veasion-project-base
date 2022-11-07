@@ -97,6 +97,16 @@ public class DateUtils extends DateUtil {
         }
     }
 
+    public static String getDurationStr(long duration) {
+        if (duration < 3600_000) {
+            return (int) (duration / 60_000) + "分" + (int) (duration % 60_000 / 1000) + "秒";
+        }
+        if (duration < 86400000) {
+            return (int) (duration / 3600_000) + "小时" + (int) (duration % 3600_000 / 60_000) + "分";
+        }
+        return (int) (duration / 86400000) + "天" + (int) (duration % 86400000 / 3600_000) + "小时" + (int) (duration % 3600_000 / 60_000) + "分";
+    }
+
     public static String week(Date date) {
         Week week = dayOfWeekEnum(date);
         switch (week) {
