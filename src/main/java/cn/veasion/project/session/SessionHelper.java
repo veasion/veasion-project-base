@@ -1,6 +1,7 @@
 package cn.veasion.project.session;
 
 import cn.veasion.db.utils.ServiceLoaderUtils;
+import cn.veasion.project.interceptor.CompanyInterceptor;
 
 import java.util.Arrays;
 import java.util.List;
@@ -72,12 +73,20 @@ public class SessionHelper {
         return sessionUser.getUserName();
     }
 
-    public static Long getCompanyId() {
+    public static Long getSessionCompanyId() {
         ISessionUser sessionUser = getSessionUser();
         if (sessionUser == null) {
             return null;
         }
         return sessionUser.getCompanyId();
+    }
+
+    public static Long getCompanyId() {
+        Long companyId = getSessionCompanyId();
+        if (companyId == null) {
+            companyId = CompanyInterceptor.getThreadLocalCompanyId();
+        }
+        return companyId;
     }
 
     public static List<Long> getAuthCompanyIds() {

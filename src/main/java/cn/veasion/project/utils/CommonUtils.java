@@ -4,7 +4,9 @@ import java.lang.reflect.Array;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 /**
  * CollectionUtils
@@ -46,6 +48,23 @@ public class CommonUtils {
             isEmpty = Array.getLength(object) == 0;
         }
         return isEmpty;
+    }
+
+    public static <T, U extends Comparable<? super U>> void sort(List<T> list, Function<? super T, ? extends U> field, boolean nullInLast) {
+        list.sort((o1, o2) -> {
+            U value1 = field.apply(o1);
+            U value2 = field.apply(o2);
+            if (value1 == null) {
+                return nullInLast ? 1 : -1;
+            } else if (value2 == null) {
+                return nullInLast ? -1 : 1;
+            }
+            if (value1 instanceof String || value2 instanceof String) {
+                return new StringComparator().compare(value1.toString(), value2.toString());
+            } else {
+                return value1.compareTo(value2);
+            }
+        });
     }
 
     public static MapBuilder<String, Object> buildMap() {
