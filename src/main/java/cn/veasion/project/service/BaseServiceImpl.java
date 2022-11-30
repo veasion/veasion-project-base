@@ -8,11 +8,11 @@ import cn.veasion.db.query.AbstractQuery;
 import cn.veasion.db.query.EntityQuery;
 import cn.veasion.db.query.OrderParam;
 import cn.veasion.db.query.SubQuery;
+import cn.veasion.db.update.AbstractJoinUpdate;
 import cn.veasion.db.update.AbstractUpdate;
 import cn.veasion.db.update.BatchEntityInsert;
 import cn.veasion.db.update.Delete;
 import cn.veasion.db.update.EntityInsert;
-import cn.veasion.db.update.EntityUpdate;
 import cn.veasion.project.model.ICreateUpdate;
 import cn.veasion.project.model.QueryCriteria;
 
@@ -20,6 +20,7 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 /**
  * BaseServiceImpl
@@ -39,10 +40,14 @@ public abstract class BaseServiceImpl<VO, PO, ID> extends InitEntity implements 
     }
 
     @Override
-    public List<VO> list(QueryCriteria queryCriteria) {
+    public List<VO> list(QueryCriteria queryCriteria, Consumer<EntityQuery> consumer) {
         QueryCriteriaConvert convert = new QueryCriteriaConvert(queryCriteria, getEntityClass());
         handleQueryCriteria(convert, queryCriteria);
-        List<VO> list = queryList(convert.getEntityQuery(), getVoClass());
+        EntityQuery entityQuery = convert.getEntityQuery();
+        if (consumer != null) {
+            consumer.accept(entityQuery);
+        }
+        List<VO> list = queryList(entityQuery, getVoClass());
         if (list != null && !list.isEmpty()) {
             handleQueryCriteriaResult(convert, queryCriteria, list);
         }
@@ -50,12 +55,15 @@ public abstract class BaseServiceImpl<VO, PO, ID> extends InitEntity implements 
     }
 
     @Override
-    public Page<VO> listPage(QueryCriteria queryCriteria) {
+    public Page<VO> listPage(QueryCriteria queryCriteria, Consumer<EntityQuery> consumer) {
         QueryCriteriaConvert convert = new QueryCriteriaConvert(queryCriteria, getEntityClass());
         handleQueryCriteria(convert, queryCriteria);
         EntityQuery entityQuery = convert.getEntityQuery();
         if (entityQuery.getPageParam() == null) {
             entityQuery.page(1, 10);
+        }
+        if (consumer != null) {
+            consumer.accept(entityQuery);
         }
         Page<VO> page = queryPage(entityQuery, getVoClass());
         List<VO> list = page.getList();
@@ -149,8 +157,8 @@ public abstract class BaseServiceImpl<VO, PO, ID> extends InitEntity implements 
 
     @Override
     public int update(AbstractUpdate<?> abstractUpdate) {
-        if (abstractUpdate instanceof EntityUpdate) {
-            updateInitEntity(((EntityUpdate) abstractUpdate).getEntity());
+        if (abstractUpdate instanceof AbstractJoinUpdate<?>) {
+            updateInitEntity(((AbstractJoinUpdate<?>) abstractUpdate).getEntity());
         }
         return getEntityDao().update(abstractUpdate);
     }

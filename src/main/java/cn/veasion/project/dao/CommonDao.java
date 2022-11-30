@@ -3,12 +3,12 @@ package cn.veasion.project.dao;
 import cn.veasion.db.DbException;
 import cn.veasion.db.base.Page;
 import cn.veasion.db.mybatis.MybatisEntityDao;
+import cn.veasion.db.query.AbstractJoinQuery;
 import cn.veasion.db.query.AbstractQuery;
-import cn.veasion.db.query.EntityQuery;
+import cn.veasion.db.update.AbstractJoinUpdate;
 import cn.veasion.db.update.BatchEntityInsert;
 import cn.veasion.db.update.Delete;
 import cn.veasion.db.update.EntityInsert;
-import cn.veasion.db.update.EntityUpdate;
 
 import javax.sql.DataSource;
 import java.util.List;
@@ -45,50 +45,50 @@ public class CommonDao {
             batchEntityInsert.check(entityList.get(0).getClass());
         } else {
             AbstractQuery<?> query = batchEntityInsert.getInsertSelectQuery();
-            if (query instanceof EntityQuery && query.getEntityClass() != null) {
+            if (query instanceof AbstractJoinQuery<?> && query.getEntityClass() != null) {
                 batchEntityInsert.check(query.getEntityClass());
             }
         }
         return dao.batchAdd(batchEntityInsert);
     }
 
-    public <E> E queryForType(EntityQuery query, Class<E> clazz) {
+    public <E> E queryForType(AbstractJoinQuery<?> query, Class<E> clazz) {
         query.check(query.getEntityClass());
         return dao.queryForType(query, clazz);
     }
 
-    public Map<String, Object> queryForMap(EntityQuery query, boolean mapUnderscoreToCamelCase) {
+    public Map<String, Object> queryForMap(AbstractJoinQuery<?> query, boolean mapUnderscoreToCamelCase) {
         query.check(query.getEntityClass());
         return dao.queryForMap(query, mapUnderscoreToCamelCase);
     }
 
-    public List<Map<String, Object>> listForMap(EntityQuery query) {
+    public List<Map<String, Object>> listForMap(AbstractJoinQuery<?> query) {
         query.check(query.getEntityClass());
         return listForMap(query, true);
     }
 
-    public List<Map<String, Object>> listForMap(EntityQuery query, boolean mapUnderscoreToCamelCase) {
+    public List<Map<String, Object>> listForMap(AbstractJoinQuery<?> query, boolean mapUnderscoreToCamelCase) {
         query.check(query.getEntityClass());
         return dao.listForMap(query, mapUnderscoreToCamelCase);
     }
 
-    public <E> List<E> queryList(EntityQuery query, Class<E> clazz) {
+    public <E> List<E> queryList(AbstractJoinQuery<?> query, Class<E> clazz) {
         query.check(query.getEntityClass());
         return dao.queryList(query, clazz);
     }
 
-    public <E> Page<E> queryPage(EntityQuery query, Class<E> clazz) {
+    public <E> Page<E> queryPage(AbstractJoinQuery<?> query, Class<E> clazz) {
         query.check(query.getEntityClass());
         return dao.queryPage(query, clazz);
     }
 
     @SuppressWarnings("unchecked")
-    public <E> Page<E> queryPage(EntityQuery query) {
+    public <E> Page<E> queryPage(AbstractJoinQuery<?> query) {
         query.check(query.getEntityClass());
         return (Page<E>) dao.queryPage(query, query.getEntityClass());
     }
 
-    public int update(EntityUpdate update) {
+    public int update(AbstractJoinUpdate<?> update) {
         update.check(update.getEntityClass());
         return dao.update(update);
     }

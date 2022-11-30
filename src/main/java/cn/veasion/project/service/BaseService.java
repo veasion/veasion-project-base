@@ -3,6 +3,7 @@ package cn.veasion.project.service;
 import cn.veasion.db.base.Page;
 import cn.veasion.db.jdbc.EntityDao;
 import cn.veasion.db.query.AbstractQuery;
+import cn.veasion.db.query.EntityQuery;
 import cn.veasion.db.query.Query;
 import cn.veasion.db.query.SubQuery;
 import cn.veasion.db.update.Delete;
@@ -14,6 +15,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
@@ -32,9 +34,17 @@ public interface BaseService<VO, PO, ID> extends EntityDao<PO, ID> {
         return queryForType(new Query().eq(getIdField(), id), clazz);
     }
 
-    List<VO> list(QueryCriteria queryCriteria);
+    List<VO> list(QueryCriteria queryCriteria, Consumer<EntityQuery> consumer);
 
-    Page<VO> listPage(QueryCriteria queryCriteria);
+    default List<VO> list(QueryCriteria queryCriteria) {
+        return list(queryCriteria, null);
+    }
+
+    Page<VO> listPage(QueryCriteria queryCriteria, Consumer<EntityQuery> consumer);
+
+    default Page<VO> listPage(QueryCriteria queryCriteria) {
+        return listPage(queryCriteria, null);
+    }
 
     default int deleteById(ID id) {
         return deleteByIds(Collections.singletonList(id));

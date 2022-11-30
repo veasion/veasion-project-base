@@ -10,7 +10,7 @@ veasion-project-base 是一个基于veasion-db和veasion-db-mybatis、springboot
 <dependency>
     <groupId>cn.veasion</groupId>
     <artifactId>veasion-project-base</artifactId>
-    <version>1.0.6</version>
+    <version>1.0.7</version>
 </dependency>
 ```
 

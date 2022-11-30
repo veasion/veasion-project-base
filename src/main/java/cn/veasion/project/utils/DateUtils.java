@@ -51,6 +51,16 @@ public class DateUtils extends DateUtil {
         }
     }
 
+    public static Date modifyHHmmss(Date date, int hour, int minute, int second) {
+        Calendar instance = Calendar.getInstance();
+        instance.setTime(date);
+        instance.set(Calendar.HOUR_OF_DAY, hour);
+        instance.set(Calendar.MINUTE, minute);
+        instance.set(Calendar.SECOND, second);
+        instance.set(Calendar.MILLISECOND, 0);
+        return instance.getTime();
+    }
+
     public static String getEndDate(Date date) {
         if (date == null) {
             return null;
