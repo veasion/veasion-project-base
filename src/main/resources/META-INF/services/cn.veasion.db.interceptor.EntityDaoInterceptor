@@ -1,2 +1,3 @@
 cn.veasion.project.interceptor.LogicDeleteInterceptor
 cn.veasion.project.interceptor.CompanyInterceptor
+cn.veasion.db.interceptor.UpdateDeleteNoFilterInterceptor

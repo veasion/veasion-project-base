@@ -27,7 +27,7 @@ public class CompanyInterceptor extends AbstractInterceptor {
     private static ThreadLocal<Long> companyThreadLocal = new ThreadLocal<>();
 
     public CompanyInterceptor() {
-        super(true, true, true, true, false);
+        super(true, true, true, true, true);
     }
 
     public static boolean isSkip() {
@@ -115,6 +115,22 @@ public class CompanyInterceptor extends AbstractInterceptor {
 
     @Override
     protected void handleInsert(Class<?> entityClass, List<?> entityList, List<Map<String, Object>> fieldValueMapList) {
+        if (entityList == null) {
+            return;
+        }
+        Long companyId = companyThreadLocal.get();
+        if (companyId == null) {
+            companyId = SessionHelper.getCompanyId();
+        }
+        for (Object entity : entityList) {
+            if (entity instanceof ICompanyId) {
+                ICompanyId company = (ICompanyId) entity;
+                if (company.getCompanyId() != null) {
+                    continue;
+                }
+                company.setCompanyId(companyId);
+            }
+        }
     }
 
     private List<Long> companyIds() {
