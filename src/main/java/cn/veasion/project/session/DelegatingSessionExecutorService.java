@@ -38,6 +38,10 @@ public class DelegatingSessionExecutorService implements ExecutorService {
         this.useSecurityContext = useSecurityContext;
     }
 
+    public ExecutorService getDelegate() {
+        return delegate;
+    }
+
     @Override
     public void shutdown() {
         delegate.shutdown();

@@ -109,6 +109,15 @@ public abstract class MongoBaseServiceImpl<M, Q extends QueryCriteria> extends I
         return (int) result.getDeletedCount();
     }
 
+    @Override
+    public long count(Q criteria, Consumer<Query> consumer) {
+        Query query = buildQuery(criteria, false);
+        if (consumer != null) {
+            consumer.accept(query);
+        }
+        return mongoTemplate.count(query, getEntityClass());
+    }
+
     protected Query buildQuery(Q criteria, boolean page) {
         return buildQuery(null, criteria, page);
     }

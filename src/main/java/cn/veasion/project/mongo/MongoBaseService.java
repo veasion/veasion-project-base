@@ -35,4 +35,6 @@ public interface MongoBaseService<M, Q extends QueryCriteria> {
 
     int delete(Q criteria);
 
+    long count(Q criteria, Consumer<Query> consumer);
+
 }

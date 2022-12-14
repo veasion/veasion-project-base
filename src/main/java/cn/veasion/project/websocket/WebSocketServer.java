@@ -67,9 +67,17 @@ public class WebSocketServer {
     private transient Map<String, Channel> channelMap = new ConcurrentHashMap<>();
 
     public ChannelFuture start(String websocketPath, int port, int workThread, AbstractWebSocketServerHandler handler) throws Exception {
-        handler.setWebSocketServer(this);
-        EventLoopGroup bossGroup = new NioEventLoopGroup(1, new DefaultThreadFactory("bossGroup"));
+        return start(websocketPath, port, 1, workThread, handler);
+    }
+
+    public ChannelFuture start(String websocketPath, int port, int bossThread, int workThread, AbstractWebSocketServerHandler handler) throws Exception {
+        EventLoopGroup bossGroup = new NioEventLoopGroup(bossThread, new DefaultThreadFactory("bossGroup"));
         EventLoopGroup workerGroup = new NioEventLoopGroup(workThread <= 0 ? NettyRuntime.availableProcessors() * 2 : workThread, new DefaultThreadFactory("workerGroup"));
+        return start(websocketPath, port, bossGroup, workerGroup, handler);
+    }
+
+    public ChannelFuture start(String websocketPath, int port, EventLoopGroup bossGroup, EventLoopGroup workerGroup, AbstractWebSocketServerHandler handler) throws Exception {
+        handler.setWebSocketServer(this);
         try {
             ServerBootstrap bootstrap = new ServerBootstrap();
             bootstrap

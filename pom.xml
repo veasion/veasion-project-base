@@ -262,12 +262,18 @@
             <version>0.4.8</version>
             <scope>provided</scope>
         </dependency>
-
         <!-- 二维码 -->
         <dependency>
             <groupId>com.google.zxing</groupId>
             <artifactId>core</artifactId>
             <version>3.3.0</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- 邮件 -->
+        <dependency>
+            <groupId>com.sun.mail</groupId>
+            <artifactId>javax.mail</artifactId>
+            <version>1.6.2</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>

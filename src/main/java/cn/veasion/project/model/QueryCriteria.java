@@ -96,6 +96,14 @@ public class QueryCriteria {
         return this;
     }
 
+    public QueryCriteria gte(String key, Object value) {
+        return addFilter("start_" + key, value);
+    }
+
+    public QueryCriteria lte(String key, Object value) {
+        return addFilter("end_" + key, value);
+    }
+
     public Object remove(String key) {
         if (filters != null) {
             return filters.remove(key);
