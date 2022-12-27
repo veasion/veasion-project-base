@@ -59,7 +59,10 @@ public class FileUtil extends cn.hutool.core.io.FileUtil {
         // 获取文件名
         String fileName = multipartFile.getOriginalFilename();
         // 获取文件后缀
-        String suffix = "." + getExtensionName(fileName);
+        String suffix = getExtensionName(fileName);
+        if (StringUtils.isNotEmpty(suffix)) {
+            suffix = "." + suffix;
+        }
         File file = null;
         try {
             // 用uuid作为文件名，防止生成的临时文件重复
@@ -85,13 +88,14 @@ public class FileUtil extends cn.hutool.core.io.FileUtil {
      * 获取文件扩展名，不带 .
      */
     public static String getExtensionName(String filename) {
-        if ((filename != null) && (filename.length() > 0)) {
-            int dot = filename.lastIndexOf('.');
-            if ((dot > -1) && (dot < (filename.length() - 1))) {
-                return filename.substring(dot + 1);
-            }
+        if (filename == null) {
+            return "";
         }
-        return filename;
+        int dot = filename.lastIndexOf('.');
+        if (dot > -1 && dot < (filename.length() - 1)) {
+            return filename.substring(dot + 1);
+        }
+        return "";
     }
 
     /**
@@ -149,11 +153,13 @@ public class FileUtil extends cn.hutool.core.io.FileUtil {
         SimpleDateFormat format = new SimpleDateFormat("yyyyMMddhhmmssS");
         String name = getFileNameNoEx(file.getOriginalFilename());
         String suffix = getExtensionName(file.getOriginalFilename());
+        if (StringUtils.isNotEmpty(suffix)) {
+            suffix = "." + suffix;
+        }
         String nowStr = "-" + format.format(date);
         try {
-            String fileName = name + nowStr + "." + suffix;
+            String fileName = name + nowStr + suffix;
             String path = filePath + fileName;
-            // getCanonicalFile 可解析正确各种路径
             File dest = new File(path).getCanonicalFile();
             // 检测是否存在目录
             if (!dest.getParentFile().exists()) {

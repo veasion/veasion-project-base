@@ -1,6 +1,5 @@
 package cn.veasion.project.service;
 
-import cn.veasion.project.utils.StringUtils;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
@@ -15,9 +14,7 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
@@ -68,7 +65,7 @@ public class CacheServiceImpl implements CacheService {
     @Override
     public <R> R loadCache(String key, Supplier<R> supplier, Long time, TimeUnit timeUnit, boolean refresh) {
         R value = refresh ? null : tryGetValue(key);
-        if (isEmpty(value)) {
+        if (value == null) {
             value = supplier.get();
             if (time != null) {
                 redisTemplate.opsForValue().set(key, value, time, timeUnit);
@@ -82,7 +79,7 @@ public class CacheServiceImpl implements CacheService {
     @Override
     public <R> R loadHashCache(String mainKey, String key, Supplier<R> supplier, boolean refresh) {
         R value = refresh ? null : tryHashValue(mainKey, key);
-        if (isEmpty(value)) {
+        if (value == null) {
             value = supplier.get();
             try {
                 redisTemplate.opsForHash().put(mainKey, key, value);
@@ -237,22 +234,6 @@ public class CacheServiceImpl implements CacheService {
     @Override
     public RedisTemplate<String, Object> getRedisTemplate() {
         return redisTemplate;
-    }
-
-    private boolean isEmpty(Object object) {
-        boolean isEmpty = false;
-        if (object == null) {
-            isEmpty = true;
-        } else if (object instanceof String) {
-            isEmpty = StringUtils.isEmpty((String) object);
-        } else if (object instanceof Collection) {
-            isEmpty = ((Collection<?>) object).isEmpty();
-        } else if (object instanceof Map) {
-            isEmpty = ((Map<?, ?>) object).isEmpty();
-        } else if (object instanceof Object[]) {
-            isEmpty = ((Object[]) object).length == 0;
-        }
-        return isEmpty;
     }
 
 }
