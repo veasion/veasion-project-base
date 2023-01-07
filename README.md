@@ -178,7 +178,7 @@ public class SysUserServiceImpl extends BaseServiceImpl<SysUserVO, SysUserPO, St
 
 ### controller
 ```java
-import cn.veasion.project.model.QueryCriteria;
+import cn.veasion.db.criteria.CommonQueryCriteria;
 import cn.veasion.project.aspect.Log;
 import cn.veasion.project.model.Page;
 import cn.veasion.project.model.R;
@@ -212,7 +212,7 @@ public class SysUserController {
 
     @PostMapping("/listPage")
     @ApiOperation("分页查询系统用户")
-    public Page<SysUserVO> listPage(@RequestBody QueryCriteria criteria) {
+    public Page<SysUserVO> listPage(@RequestBody CommonQueryCriteria criteria) {
         return Page.ok(sysUserService.listPage(criteria));
     }
 
@@ -239,7 +239,7 @@ public class SysUserController {
 
     @ApiOperation("导出数据")
     @PostMapping("/download")
-    public void download(@RequestBody QueryCriteria criteria, HttpServletResponse response) throws IOException {
+    public void download(@RequestBody CommonQueryCriteria criteria, HttpServletResponse response) throws IOException {
         download(sysUserService.list(criteria), response);
     }
 
