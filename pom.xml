@@ -7,7 +7,7 @@
 
     <groupId>cn.veasion</groupId>
     <artifactId>veasion-project-base</artifactId>
-    <version>1.0.8</version>
+    <version>1.0.9</version>
 
     <name>veasion-project-base</name>
     <url>https://github.com/veasion/veasion-project-base</url>
@@ -76,7 +76,7 @@
         <spring-security.version>5.6.2</spring-security.version>
         <aspectjweaver.version>1.9.7</aspectjweaver.version>
         <redisson.version>3.17.0</redisson.version>
-        <veasion-db.version>1.2.4</veasion-db.version>
+        <veasion-db.version>1.2.5</veasion-db.version>
         <veasion-db-mybatis.version>1.0.4</veasion-db-mybatis.version>
         <poi.version>5.0.0</poi.version>
         <hutool.version>5.3.4</hutool.version>

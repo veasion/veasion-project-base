@@ -3,6 +3,7 @@ package cn.veasion.project.mongo;
 import cn.veasion.db.FilterException;
 import cn.veasion.db.base.Operator;
 import cn.veasion.db.criteria.AutoCriteria;
+import cn.veasion.db.criteria.CommonQueryCriteria;
 import cn.veasion.db.criteria.QueryCriteria;
 import cn.veasion.db.utils.FieldUtils;
 import cn.veasion.project.utils.DateUtils;
@@ -38,7 +39,7 @@ public class MQueryCriteriaConvert {
     public static final Pattern FIELD_PATTERN = Pattern.compile("[_0-9a-zA-Z.]+");
 
     @SuppressWarnings("unchecked")
-    public static Map<String, Criteria> handleFilters(Query query, cn.veasion.project.model.QueryCriteria criteria) {
+    public static Map<String, Criteria> handleFilters(Query query, CommonQueryCriteria criteria) {
         Objects.requireNonNull(query, "query is null");
         Map<String, Criteria> map = new HashMap<>();
         if (criteria == null) {

@@ -2,6 +2,7 @@ package cn.veasion.project.service;
 
 import cn.veasion.db.FilterException;
 import cn.veasion.db.base.Page;
+import cn.veasion.db.criteria.CommonQueryCriteria;
 import cn.veasion.db.criteria.QueryCriteriaConvert;
 import cn.veasion.db.jdbc.EntityDao;
 import cn.veasion.db.query.AbstractQuery;
@@ -14,7 +15,6 @@ import cn.veasion.db.update.BatchEntityInsert;
 import cn.veasion.db.update.Delete;
 import cn.veasion.db.update.EntityInsert;
 import cn.veasion.project.model.ICreateUpdate;
-import cn.veasion.project.model.QueryCriteria;
 
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
@@ -40,14 +40,19 @@ public abstract class BaseServiceImpl<VO, PO, ID> extends InitEntity implements 
     }
 
     @Override
-    public List<VO> list(QueryCriteria queryCriteria, Consumer<EntityQuery> consumer) {
+    public List<VO> list(CommonQueryCriteria queryCriteria, Consumer<EntityQuery> consumer) {
+        return queryList(queryCriteria, getVoClass(), consumer);
+    }
+
+    @Override
+    public <E> List<E> queryList(CommonQueryCriteria queryCriteria, Class<E> clazz, Consumer<EntityQuery> consumer) {
         QueryCriteriaConvert convert = new QueryCriteriaConvert(queryCriteria, getEntityClass());
         handleQueryCriteria(convert, queryCriteria);
         EntityQuery entityQuery = convert.getEntityQuery();
         if (consumer != null) {
             consumer.accept(entityQuery);
         }
-        List<VO> list = queryList(entityQuery, getVoClass());
+        List<E> list = queryList(entityQuery, clazz);
         if (list != null && !list.isEmpty()) {
             handleQueryCriteriaResult(convert, queryCriteria, list);
         }
@@ -55,7 +60,12 @@ public abstract class BaseServiceImpl<VO, PO, ID> extends InitEntity implements 
     }
 
     @Override
-    public Page<VO> listPage(QueryCriteria queryCriteria, Consumer<EntityQuery> consumer) {
+    public Page<VO> listPage(CommonQueryCriteria queryCriteria, Consumer<EntityQuery> consumer) {
+        return queryPage(queryCriteria, getVoClass(), consumer);
+    }
+
+    @Override
+    public <E> Page<E> queryPage(CommonQueryCriteria queryCriteria, Class<E> clazz, Consumer<EntityQuery> consumer) {
         QueryCriteriaConvert convert = new QueryCriteriaConvert(queryCriteria, getEntityClass());
         handleQueryCriteria(convert, queryCriteria);
         EntityQuery entityQuery = convert.getEntityQuery();
@@ -65,15 +75,15 @@ public abstract class BaseServiceImpl<VO, PO, ID> extends InitEntity implements 
         if (consumer != null) {
             consumer.accept(entityQuery);
         }
-        Page<VO> page = queryPage(entityQuery, getVoClass());
-        List<VO> list = page.getList();
+        Page<E> page = queryPage(entityQuery, clazz);
+        List<E> list = page.getList();
         if (list != null && !list.isEmpty()) {
             handleQueryCriteriaResult(convert, queryCriteria, list);
         }
         return page;
     }
 
-    protected void handleQueryCriteria(QueryCriteriaConvert convert, QueryCriteria queryCriteria) {
+    protected void handleQueryCriteria(QueryCriteriaConvert convert, CommonQueryCriteria queryCriteria) {
         EntityQuery entityQuery = convert.getEntityQuery().selectAll();
         if (queryCriteria.getPage() != null && queryCriteria.getSize() != null) {
             entityQuery.page(queryCriteria.getPage(), queryCriteria.getSize());
@@ -93,7 +103,7 @@ public abstract class BaseServiceImpl<VO, PO, ID> extends InitEntity implements 
         }
     }
 
-    protected void handleQueryCriteriaResult(QueryCriteriaConvert convert, QueryCriteria queryCriteria, List<VO> list) {
+    protected void handleQueryCriteriaResult(QueryCriteriaConvert convert, CommonQueryCriteria queryCriteria, List<?> list) {
         convert.handleResultLoadRelation(getEntityDao(), list);
     }
 

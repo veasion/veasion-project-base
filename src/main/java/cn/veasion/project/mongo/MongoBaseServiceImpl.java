@@ -2,8 +2,8 @@ package cn.veasion.project.mongo;
 
 import cn.hutool.core.collection.CollectionUtil;
 import cn.veasion.db.base.Page;
+import cn.veasion.db.criteria.CommonQueryCriteria;
 import cn.veasion.db.query.OrderParam;
-import cn.veasion.project.model.QueryCriteria;
 import cn.veasion.project.service.InitEntity;
 import com.mongodb.client.result.DeleteResult;
 import org.springframework.data.domain.Sort;
@@ -25,7 +25,7 @@ import java.util.function.Consumer;
  * @author luozhuowei
  * @date 2022/2/5
  */
-public abstract class MongoBaseServiceImpl<M, Q extends QueryCriteria> extends InitEntity implements MongoBaseService<M, Q> {
+public abstract class MongoBaseServiceImpl<M, Q extends CommonQueryCriteria> extends InitEntity implements MongoBaseService<M, Q> {
 
     @Resource
     protected MongoTemplate mongoTemplate;

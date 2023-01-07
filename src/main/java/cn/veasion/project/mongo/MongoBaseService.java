@@ -1,7 +1,7 @@
 package cn.veasion.project.mongo;
 
 import cn.veasion.db.base.Page;
-import cn.veasion.project.model.QueryCriteria;
+import cn.veasion.db.criteria.CommonQueryCriteria;
 import org.springframework.data.mongodb.core.query.Query;
 
 import java.util.List;
@@ -13,7 +13,7 @@ import java.util.function.Consumer;
  * @author luozhuowei
  * @date 2022/2/5
  */
-public interface MongoBaseService<M, Q extends QueryCriteria> {
+public interface MongoBaseService<M, Q extends CommonQueryCriteria> {
 
     M insert(M obj);
 

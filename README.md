@@ -11,7 +11,7 @@ veasion-project-base 是一个基于veasion-db和veasion-db-mybatis、springboot
 <dependency>
     <groupId>cn.veasion</groupId>
     <artifactId>veasion-project-base</artifactId>
-    <version>1.0.8</version>
+    <version>1.0.9</version>
 </dependency>
 ```
 
