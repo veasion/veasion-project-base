@@ -78,8 +78,12 @@ public abstract class MongoBaseServiceImpl<M, Q extends CommonQueryCriteria> ext
 
     @Override
     public <T> List<T> list(Q criteria, Consumer<Query> consumer, Class<T> clazz) {
-        criteria.setPage(1);
-        criteria.setSize(10000);
+        if (criteria.getPage() == null) {
+            criteria.setPage(1);
+        }
+        if (criteria.getSize() == null) {
+            criteria.setSize(10000);
+        }
         Query query = buildQuery(criteria, true);
         if (consumer != null) {
             consumer.accept(query);
