@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -50,6 +51,26 @@ public class CommonUtils {
         return isEmpty;
     }
 
+    public static boolean isNotEmpty(Collection<?> collection) {
+        return !isEmpty(collection);
+    }
+
+    public static boolean isNotEmpty(Map<?, ?> map) {
+        return !isEmpty(map);
+    }
+
+    public static boolean isNotEmpty(String str) {
+        return !isEmpty(str);
+    }
+
+    public static boolean isNotEmpty(Object[] array) {
+        return !isEmpty(array);
+    }
+
+    public static boolean isNotEmpty(Object object) {
+        return !isEmpty(object);
+    }
+
     public static <T, U extends Comparable<? super U>> void sort(List<T> list, Function<? super T, ? extends U> field, boolean nullInLast) {
         list.sort((o1, o2) -> {
             U value1 = field.apply(o1);
@@ -75,6 +96,11 @@ public class CommonUtils {
         return Collections.singletonMap(k1, v1);
     }
 
+    public static <K, V> Map<K, V> buildMap(K k1, V v1) {
+        MapBuilder<K, V> builder = new MapBuilder<>();
+        return builder.put(k1, v1).build();
+    }
+
     public static <K, V> Map<K, V> buildMap(K k1, V v1, K k2, V v2) {
         MapBuilder<K, V> builder = new MapBuilder<>();
         return builder.put(k1, v1).put(k2, v2).build();
@@ -90,6 +116,11 @@ public class CommonUtils {
 
         public MapBuilder<K, V> put(K key, V value) {
             map.put(key, value);
+            return this;
+        }
+
+        public MapBuilder<K, V> exec(Consumer<Map<K, V>> consumer) {
+            consumer.accept(map);
             return this;
         }
 

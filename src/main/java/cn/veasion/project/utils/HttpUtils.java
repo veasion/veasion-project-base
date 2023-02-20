@@ -26,12 +26,15 @@ import org.springframework.util.StringUtils;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509TrustManager;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
@@ -39,6 +42,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -55,7 +59,7 @@ public class HttpUtils {
     public static final String CONTENT_TYPE_FORM_DATA = "application/x-www-form-urlencoded";
     private static final PoolingHttpClientConnectionManager CONNECTION_MANAGER;
     private static final int MAX_CONNECT_TIMEOUT = 8000;
-    private static final int MAX_SOCKET_TIMEOUT = 30000;
+    private static final int MAX_SOCKET_TIMEOUT = 90000;
 
     static {
         // http
@@ -114,6 +118,31 @@ public class HttpUtils {
             request.getHeaders().put(CONTENT_TYPE, CONTENT_TYPE_FORM_DATA);
         }
         return request(request);
+    }
+
+    public static HttpResponse requestWithEventStream(HttpRequest request, Consumer<String> dataConsumer) throws Exception {
+        if (request.getMaxSocketTimeout() == null) {
+            request.setMaxSocketTimeout(-1);
+        }
+        request.setResponseHandler(entity -> {
+            StringBuilder sb = new StringBuilder();
+            try {
+                try (InputStream is = entity.getContent()) {
+                    try (BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
+                        String line;
+                        while ((line = bufferedReader.readLine()) != null) {
+                            sb.append(line).append("\r\n");
+                            if (line.startsWith("data:")) {
+                                dataConsumer.accept(line.substring(5));
+                            }
+                        }
+                    }
+                }
+            } catch (Exception ignored) {
+            }
+            return sb.toString();
+        });
+        return HttpUtils.request(request);
     }
 
     public static String getUrlLinks(Map<String, Object> params) throws UnsupportedEncodingException {
@@ -331,6 +360,18 @@ public class HttpUtils {
             return request;
         }
 
+        public static HttpRequest get(String url) {
+            return build(url, "GET");
+        }
+
+        public static HttpRequest postJson(String url) {
+            return build(url, "POST").setContentType(CONTENT_TYPE_JSON);
+        }
+
+        public static HttpRequest postFormData(String url) {
+            return build(url, "POST").setContentType(CONTENT_TYPE_FORM_DATA);
+        }
+
         public String getUrl() {
             return url;
         }
@@ -358,11 +399,12 @@ public class HttpUtils {
             return this;
         }
 
-        public void setContentType(String contentType) {
+        public HttpRequest setContentType(String contentType) {
             if (this.headers == null) {
                 this.headers = new HashMap<>();
             }
             this.headers.put(CONTENT_TYPE, contentType);
+            return this;
         }
 
         public HttpRequest addHeaders(String key, Object value) {
@@ -382,8 +424,9 @@ public class HttpUtils {
             return this;
         }
 
-        public void setMaxSocketTimeout(Integer maxSocketTimeout) {
+        public HttpRequest setMaxSocketTimeout(Integer maxSocketTimeout) {
             this.maxSocketTimeout = maxSocketTimeout;
+            return this;
         }
 
         public Integer getMaxSocketTimeout() {

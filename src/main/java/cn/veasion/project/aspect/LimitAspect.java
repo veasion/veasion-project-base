@@ -16,9 +16,9 @@ import org.springframework.stereotype.Component;
 
 import javax.servlet.http.HttpServletRequest;
 import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 import java.util.Objects;
 
 /**
@@ -42,27 +42,41 @@ public class LimitAspect {
 
     @Around("pointcut()")
     public Object around(ProceedingJoinPoint joinPoint) throws Throwable {
-        HttpServletRequest request = Objects.requireNonNull(RequestHolder.getHttpServletRequest());
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();
         Method signatureMethod = signature.getMethod();
         Limit limit = signatureMethod.getAnnotation(Limit.class);
         StringBuilder key = new StringBuilder("limit:");
         key.append(limit.key());
         if (limit.limitType() == Limit.LimitType.IP) {
+            HttpServletRequest request = RequestHolder.getHttpServletRequest();
+            Objects.requireNonNull(request, "请求不能为空");
             key.append("_").append(StringUtils.getIp(request));
         } else if (limit.limitType() == Limit.LimitType.METHOD_PARAM_ALL) {
             key.append("_").append(Arrays.toString(joinPoint.getArgs()));
+        } else if (limit.limitType() == Limit.LimitType.PARAM_ANNOTATION) {
+            for (int i = 0; i < signatureMethod.getParameters().length; i++) {
+                Parameter parameter = signatureMethod.getParameters()[i];
+                LimitParam annotation = parameter.getAnnotation(LimitParam.class);
+                if (annotation != null) {
+                    key.append("_").append(joinPoint.getArgs()[i]);
+                }
+            }
         } else {
             String userId = SessionHelper.getUserId();
-            key.append("_").append(userId != null ? userId : StringUtils.getIp(request));
+            if (userId != null) {
+                key.append("_").append(userId);
+            } else {
+                HttpServletRequest request = RequestHolder.getHttpServletRequest();
+                Objects.requireNonNull(request, "请求不能为空");
+                key.append("_").append(StringUtils.getIp(request));
+            }
         }
         if (limit.requestURI()) {
+            HttpServletRequest request = RequestHolder.getHttpServletRequest();
+            Objects.requireNonNull(request, "请求不能为空");
             key.append("_").append(request.getRequestURI().replace("/", "_"));
         }
-        List<String> keys = Collections.singletonList(key.toString());
-        String luaScript = buildLuaScript();
-        RedisScript<Number> redisScript = new DefaultRedisScript<>(luaScript, Number.class);
-        Number count = redisTemplate.execute(redisScript, keys, limit.maxCount(), limit.periodOfSeconds());
+        Number count = count(key.toString(), limit.maxCount(), limit.periodOfSeconds());
         if (null != count && count.longValue() <= limit.maxCount()) {
             return joinPoint.proceed();
         } else {
@@ -70,10 +84,16 @@ public class LimitAspect {
         }
     }
 
+    public Number count(String key, int maxCount, int periodOfSeconds) {
+        String luaScript = buildLuaScript();
+        RedisScript<Number> redisScript = new DefaultRedisScript<>(luaScript, Number.class);
+        return redisTemplate.execute(redisScript, Collections.singletonList(key), maxCount, periodOfSeconds);
+    }
+
     /**
      * 限流脚本
      */
-    private static String buildLuaScript() {
+    public static String buildLuaScript() {
         return "local c" +
                 "\nc = redis.call('get', KEYS[1])" +
                 "\nif c and tonumber(c) > tonumber(ARGV[1]) then" +

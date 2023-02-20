@@ -54,9 +54,15 @@ public @interface Limit {
         IP,
 
         /**
-         * 方法参数
+         * 参数注解
+         */
+        PARAM_ANNOTATION,
+
+        /**
+         * 全部方法参数
          */
         METHOD_PARAM_ALL
+
     }
 
 }

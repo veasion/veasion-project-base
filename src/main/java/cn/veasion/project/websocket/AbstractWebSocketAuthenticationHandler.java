@@ -36,7 +36,7 @@ public abstract class AbstractWebSocketAuthenticationHandler extends ChannelInbo
                 for (String param : split) {
                     String[] p = param.split("=");
                     if (p.length == 1) {
-                        throw new RuntimeException("请求参数错误：请检查URL参数是否编码");
+                        continue;
                     }
                     params.put(p[0], URLDecoder.decode(p[1], "UTF-8"));
                 }
