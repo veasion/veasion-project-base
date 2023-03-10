@@ -15,12 +15,13 @@ import java.util.function.Supplier;
  */
 public class SessionHelper {
 
-    public static final Long DEFAULT_COMPANY_ID = -1L;
+    public static final Long DEFAULT_COMPANY_ID;
     private static ISessionProvider sessionProvider;
     private static final ThreadLocal<ISessionUser> sessionUserHolder = new ThreadLocal<>();
 
     static {
         sessionProvider = ServiceLoaderUtils.loadOne(ISessionProvider.class);
+        DEFAULT_COMPANY_ID = sessionProvider == null ? -1L : sessionProvider.defaultCompanyId();
     }
 
     public static <R> R withUser(ISessionUser user, Supplier<R> supplier) {

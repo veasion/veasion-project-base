@@ -10,4 +10,8 @@ public interface ISessionProvider {
 
     ISessionUser getSessionUser();
 
+    default Long defaultCompanyId() {
+        return -1L;
+    }
+
 }

@@ -83,6 +83,9 @@ public class DateUtils extends DateUtil {
         if (date == null) {
             return null;
         }
+        if (!date.contains("-") && date.matches("\\d+")) {
+            return new Date(Long.parseLong(date));
+        }
         return date.contains(":") ? parse(date, "yyyy-MM-dd HH:mm:ss") : parse(date, "yyyy-MM-dd");
     }
 

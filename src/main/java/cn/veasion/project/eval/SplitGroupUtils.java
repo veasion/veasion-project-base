@@ -3,6 +3,7 @@ package cn.veasion.project.eval;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.function.Function;
 
 /**
  * SplitGroupUtils
@@ -21,15 +22,27 @@ public class SplitGroupUtils {
         List<Group> list2 = group(text2, "(", ")", true);
         System.out.println(text2);
         System.out.println(list2);
+        String text3 = "create_time >= date_sub(now(), interval 1 day) and age > 0 and (name like 'xx2' or name like 'xx1' and (sex = 1 and username = '123'))";
+        List<Group> list3 = group(text3, "(", ")", true, s -> s.contains(" and ") || s.contains(" AND ") || s.contains(" or ") || s.contains(" OR "));
+        System.out.println(text3);
+        System.out.println(list3);
     }
 
     public static List<Group> group(String text, String left, String right, boolean fill) {
-        return group(text, left, right, fill, false);
+        return group(text, left, right, fill, false, null);
+    }
+
+    public static List<Group> group(String text, String left, String right, boolean fill, Function<String, Boolean> filter) {
+        return group(text, left, right, fill, false, filter);
     }
 
     public static List<Group> group(String text, String left, String right, boolean fill, boolean checkLR) {
-        List<Integer> leftList = findIndex(text, left);
-        List<Integer> rightList = findIndex(text, right);
+        return group(text, left, right, fill, checkLR, null);
+    }
+
+    public static List<Group> group(String text, String left, String right, boolean fill, boolean checkLR, Function<String, Boolean> filter) {
+        List<Integer> leftList = findIndex(text, left, filter);
+        List<Integer> rightList = findIndex(text, right, filter);
         if (checkLR && leftList.size() != rightList.size()) {
             throw new RuntimeException("语法错误，缺少 => " + (leftList.size() > rightList.size() ? right : left));
         }
@@ -97,11 +110,13 @@ public class SplitGroupUtils {
         return trees.isEmpty() ? null : trees;
     }
 
-    private static List<Integer> findIndex(String text, String s) {
-        int index = -1;
+    private static List<Integer> findIndex(String text, String s, Function<String, Boolean> filter) {
+        int index = -1, last = 0;
         List<Integer> list = new ArrayList<>();
         while ((index = text.indexOf(s, index + 1)) != -1) {
-            list.add(index);
+            if (filter == null || Boolean.TRUE.equals(filter.apply(text.substring(last, index)))) {
+                list.add(index);
+            }
         }
         return list;
     }
@@ -175,15 +190,13 @@ public class SplitGroupUtils {
 
         @Override
         public String toString() {
-            StringBuilder sb = new StringBuilder("{ ");
-            sb.append("left: ").append(left);
-            sb.append(", right: ").append(right);
-            sb.append(", type: ").append(type);
-            sb.append(", value: ").append(value);
-            sb.append(", context: ").append(context);
-            sb.append(", children: ").append(children);
-            sb.append(" }");
-            return sb.toString();
+            return "{ left: " + left +
+                    ", right: " + right +
+                    ", type: " + type +
+                    ", value: " + value +
+                    ", context: " + context +
+                    ", children: " + children +
+                    " }";
         }
     }
 }

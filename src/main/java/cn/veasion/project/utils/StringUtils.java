@@ -1,10 +1,16 @@
 package cn.veasion.project.utils;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
+
 import javax.servlet.http.HttpServletRequest;
+import java.math.BigDecimal;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.UnknownHostException;
+import java.util.Date;
 import java.util.Enumeration;
+import java.util.List;
 
 /**
  * StringUtils
@@ -208,6 +214,136 @@ public class StringUtils extends org.apache.commons.lang3.StringUtils {
             return jdkSuppliedAddress.getHostAddress();
         } catch (Exception e) {
             return "";
+        }
+    }
+
+    /**
+     * 值匹配
+     *
+     * @param value      值
+     * @param matchOper  操作符
+     *                   <ul>
+     *                      <li>eq 等于</li>
+     *                      <li>neq 不等于</li>
+     *                      <li>like 包含</li>
+     *                      <li>notLike 不包含</li>
+     *                      <li>notNull 有值</li>
+     *                      <li>isNull 无值</li>
+     *                      <li>lt 小于</li>
+     *                      <li>lte 小于等于</li>
+     *                      <li>gt 大于</li>
+     *                      <li>gte 大于等于</li>
+     *                      <li>between 介于区间</li>
+     *                      <li>all 包含全部</li>
+     *                      <li>any 包含任意</li>
+     *                      <li>notAll 不包含全部</li>
+     *                      <li>notAny 不包含任意</li>
+     *                   </ul>
+     * @param matchValue 匹配值（string/number/date/array）
+     */
+    public static boolean matchValue(String value, String matchOper, Object matchValue) {
+        try {
+            switch (matchOper) {
+                case "eq":
+                    return String.valueOf(matchValue).equals(value);
+                case "neq":
+                    return !String.valueOf(matchValue).equals(value);
+                case "like":
+                    return value != null && value.contains(String.valueOf(matchValue));
+                case "notLike":
+                    return !(value != null && value.contains(String.valueOf(matchValue)));
+                case "notNull":
+                    return StringUtils.isNotEmpty(value);
+                case "isNull":
+                    return StringUtils.isEmpty(value);
+                case "lt":
+                case "lte":
+                case "gt":
+                case "gte":
+                    if (StringUtils.isEmpty(value) || matchValue == null) {
+                        return false;
+                    }
+                    if (!matchValue.toString().matches("\\d+")) {
+                        matchValue = DateUtils.simpleParse(matchValue.toString());
+                    }
+                    if (matchValue instanceof Date) {
+                        matchValue = ((Date) matchValue).getTime();
+                        if (!value.matches("\\d+")) {
+                            value = String.valueOf(DateUtils.simpleParse(value).getTime());
+                        }
+                    }
+                    int compare = new BigDecimal(value).compareTo(new BigDecimal(matchValue.toString()));
+                    switch (matchOper) {
+                        case "lt":
+                            return compare < 0;
+                        case "lte":
+                            return compare <= 0;
+                        case "gt":
+                            return compare > 0;
+                        default:
+                            return compare >= 0;
+                    }
+                case "between":
+                    if (StringUtils.isEmpty(value) || matchValue == null) {
+                        return false;
+                    }
+                    List<String> _matchValue = parseListValue(matchValue);
+                    if (value.matches("\\d+")) {
+                        // number
+                        BigDecimal _value = new BigDecimal(value);
+                        return _value.compareTo(new BigDecimal(_matchValue.get(0))) >= 0 && _value.compareTo(new BigDecimal(_matchValue.get(1))) <= 0;
+                    } else {
+                        // date
+                        long _value = DateUtils.simpleParse(value).getTime();
+                        return _value >= DateUtils.simpleParse(_matchValue.get(0)).getTime() && _value <= DateUtils.simpleParse(_matchValue.get(1)).getTime();
+                    }
+                case "all":
+                    List<String> all = parseListValue(matchValue);
+                    List<String> _all = parseListValue(value);
+                    for (String s : all) {
+                        if (!_all.contains(s)) {
+                            return false;
+                        }
+                    }
+                    return true;
+                case "any":
+                    List<String> any = parseListValue(matchValue);
+                    List<String> _any = parseListValue(value);
+                    for (String s : any) {
+                        if (_any.contains(s)) {
+                            return true;
+                        }
+                    }
+                    return false;
+                case "notAll":
+                    List<String> notAll = parseListValue(matchValue);
+                    List<String> _notAll = parseListValue(value);
+                    for (String s : notAll) {
+                        if (_notAll.contains(s)) {
+                            return false;
+                        }
+                    }
+                    return true;
+                case "notAny":
+                    List<String> notAny = parseListValue(matchValue);
+                    List<String> _notAny = parseListValue(value);
+                    for (String s : notAny) {
+                        if (!_notAny.contains(s)) {
+                            return true;
+                        }
+                    }
+                    return false;
+            }
+        } catch (Exception ignored) {
+        }
+        return false;
+    }
+
+    private static List<String> parseListValue(Object matchValue) {
+        if (matchValue instanceof String) {
+            return JSONArray.parseArray(matchValue.toString(), String.class);
+        } else {
+            return JSONArray.parseArray(JSON.toJSONString(matchValue), String.class);
         }
     }
 
