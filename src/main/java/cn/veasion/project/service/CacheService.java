@@ -78,6 +78,8 @@ public interface CacheService {
 
     void deleteHash(String mainKey, String key);
 
+    List<String> scanKeys(String pattern);
+
     void scanDelete(String pattern);
 
     RedisTemplate<String, Object> getRedisTemplate();

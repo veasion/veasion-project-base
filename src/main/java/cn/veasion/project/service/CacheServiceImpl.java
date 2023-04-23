@@ -211,7 +211,7 @@ public class CacheServiceImpl implements CacheService {
     }
 
     @Override
-    public void scanDelete(String pattern) {
+    public List<String> scanKeys(String pattern) {
         ScanOptions options = ScanOptions.scanOptions().match(pattern).build();
         RedisConnectionFactory factory = redisTemplate.getConnectionFactory();
         RedisConnection connection = Objects.requireNonNull(factory).getConnection();
@@ -226,6 +226,12 @@ public class CacheServiceImpl implements CacheService {
         } finally {
             RedisConnectionUtils.releaseConnection(connection, factory);
         }
+        return keys;
+    }
+
+    @Override
+    public void scanDelete(String pattern) {
+        List<String> keys = scanKeys(pattern);
         if (!keys.isEmpty()) {
             redisTemplate.delete(keys);
         }

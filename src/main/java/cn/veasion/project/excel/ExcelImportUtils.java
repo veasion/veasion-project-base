@@ -9,9 +9,9 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,7 +33,7 @@ public class ExcelImportUtils {
     }
 
     public static JSONArray parse(File file, Map<String, String> fieldMap) throws IOException {
-        return parse(new FileInputStream(file), fieldMap);
+        return parse(Files.newInputStream(file.toPath()), fieldMap);
     }
 
     public static JSONArray parse(InputStream is, Map<String, String> fieldMap) throws IOException {

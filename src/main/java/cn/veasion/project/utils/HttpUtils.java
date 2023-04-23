@@ -122,7 +122,7 @@ public class HttpUtils {
 
     public static HttpResponse requestWithEventStream(HttpRequest request, Consumer<String> dataConsumer) throws Exception {
         if (request.getMaxSocketTimeout() == null) {
-            request.setMaxSocketTimeout(-1);
+            request.setMaxSocketTimeout(300_000);
         }
         request.setResponseHandler(entity -> {
             StringBuilder sb = new StringBuilder();
@@ -131,9 +131,9 @@ public class HttpUtils {
                     try (BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
                         String line;
                         while ((line = bufferedReader.readLine()) != null) {
-                            sb.append(line).append("\r\n");
-                            if (line.startsWith("data:")) {
-                                dataConsumer.accept(line.substring(5));
+                            sb.append(line).append("\n");
+                            if (line.startsWith("data: ")) {
+                                dataConsumer.accept(line.substring(6));
                             }
                         }
                     }
