@@ -18,6 +18,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -163,9 +164,7 @@ public class FileUtil extends cn.hutool.core.io.FileUtil {
             File dest = new File(path).getCanonicalFile();
             // 检测是否存在目录
             if (!dest.getParentFile().exists()) {
-                if (!dest.getParentFile().mkdirs()) {
-                    System.out.println("was not successful.");
-                }
+                dest.getParentFile().mkdirs();
             }
             // 文件写入
             file.transferTo(dest);
@@ -232,30 +231,20 @@ public class FileUtil extends cn.hutool.core.io.FileUtil {
     private static byte[] getByte(File file) {
         // 得到文件长度
         byte[] b = new byte[(int) file.length()];
-        InputStream in = null;
-        try {
-            in = new FileInputStream(file);
+        try (InputStream in = Files.newInputStream(file.toPath())) {
             try {
-                System.out.println(in.read(b));
+                in.read(b);
             } catch (IOException e) {
                 log.error(e.getMessage(), e);
             }
         } catch (Exception e) {
             log.error(e.getMessage(), e);
             return null;
-        } finally {
-            try {
-                if (in != null) {
-                    in.close();
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
         }
         return b;
     }
 
-    private static String getMd5(byte[] bytes) {
+    public static String getMd5(byte[] bytes) {
         // 16进制字符
         char[] hexDigits = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
         try {

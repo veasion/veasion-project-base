@@ -64,8 +64,8 @@ public class HttpUtils {
     static {
         // http
         CONNECTION_MANAGER = new PoolingHttpClientConnectionManager();
-        CONNECTION_MANAGER.setMaxTotal(50);
-        CONNECTION_MANAGER.setDefaultMaxPerRoute(10);
+        CONNECTION_MANAGER.setMaxTotal(500);
+        CONNECTION_MANAGER.setDefaultMaxPerRoute(100);
     }
 
     public static HttpResponse get(String url, Map<String, Object> params) throws Exception {
