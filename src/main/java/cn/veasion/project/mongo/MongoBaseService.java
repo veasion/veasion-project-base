@@ -17,9 +17,15 @@ public interface MongoBaseService<M, Q extends CommonQueryCriteria> {
 
     M insert(M obj);
 
+    List<M> insertAll(List<M> list);
+
     M saveOrUpdate(M obj);
 
     M getById(Object id);
+
+    <T> T findOne(Query query, Class<T> clazz);
+
+    <T> T findOne(Q criteria, Consumer<Query> consumer, Class<T> clazz);
 
     <T> List<T> list(Query query, Class<T> clazz);
 

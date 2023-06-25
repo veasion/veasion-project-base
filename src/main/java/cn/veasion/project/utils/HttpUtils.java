@@ -68,6 +68,10 @@ public class HttpUtils {
         CONNECTION_MANAGER.setDefaultMaxPerRoute(100);
     }
 
+    public static HttpResponse get(String url) throws Exception {
+        return get(url, null);
+    }
+
     public static HttpResponse get(String url, Map<String, Object> params) throws Exception {
         String urlLinks = getUrlLinks(params);
         if (urlLinks != null) {
@@ -138,7 +142,8 @@ public class HttpUtils {
                         }
                     }
                 }
-            } catch (Exception ignored) {
+            } catch (Exception e) {
+                throw new RuntimeException("eventStream 请求异常", e);
             }
             return sb.toString();
         });
@@ -204,14 +209,21 @@ public class HttpUtils {
                     httpResponse.getHeaders().put(header.getName(), header.getValue());
                 }
             }
+            HttpEntity entity = response.getEntity();
             if (request.responseHandler != null) {
-                httpResponse.setResponse(request.responseHandler.apply(response.getEntity()));
+                httpResponse.setResponse(request.responseHandler.apply(entity));
             } else {
-                String charset = CHARSET_DEFAULT;
-                if (contentType != null && contentType.getCharset() != null) {
-                    charset = contentType.getCharset().name();
+                String charset = null;
+                if (entity.getContentType() != null && entity.getContentType().getValue() != null) {
+                    contentType = ContentType.parse(entity.getContentType().getValue());
+                    if (contentType.getCharset() != null) {
+                        charset = contentType.getCharset().name();
+                    }
                 }
-                httpResponse.setResponse(IOUtils.toString(response.getEntity().getContent(), charset));
+                if (charset == null) {
+                    charset = CHARSET_DEFAULT;
+                }
+                httpResponse.setResponse(IOUtils.toString(entity.getContent(), charset));
             }
             return httpResponse;
         } catch (Exception e) {

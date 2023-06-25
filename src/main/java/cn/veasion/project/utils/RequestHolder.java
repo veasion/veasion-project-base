@@ -41,6 +41,23 @@ public class RequestHolder {
         return (isHttps ? "https://" : "http://") + getDomain(request);
     }
 
+    public static String getServerBaseUrl(HttpServletRequest request) {
+        if (request == null) {
+            request = getHttpServletRequest();
+        }
+        if (request == null) {
+            return null;
+        }
+        StringBuffer requestURL = request.getRequestURL();
+        int end = requestURL.indexOf("/", 10);
+        String domain = end > -1 ? requestURL.substring(0, end) : requestURL.substring(0);
+        if (domain.endsWith(":443")) {
+            domain = domain.replace(":443", "").replace("http://", "https://");
+        }
+        String contextPath = request.getContextPath() != null ? request.getContextPath() : "";
+        return domain + contextPath;
+    }
+
     public static boolean startContextPath(String contextPath) {
         HttpServletRequest httpServletRequest = getHttpServletRequest();
         if (httpServletRequest == null) {

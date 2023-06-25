@@ -16,6 +16,7 @@ import javax.annotation.Resource;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -38,6 +39,20 @@ public abstract class MongoBaseServiceImpl<M, Q extends CommonQueryCriteria> ext
     }
 
     @Override
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public List<M> insertAll(List<M> list) {
+        for (M obj : list) {
+            initEntity(obj);
+        }
+        Collection<M> newList = mongoTemplate.insert(list, getEntityClass());
+        if (newList instanceof List) {
+            return (List) newList;
+        } else {
+            return new ArrayList<>(newList);
+        }
+    }
+
+    @Override
     public M saveOrUpdate(M obj) {
         initEntity(obj);
         updateInitEntity(obj);
@@ -47,6 +62,20 @@ public abstract class MongoBaseServiceImpl<M, Q extends CommonQueryCriteria> ext
     @Override
     public M getById(Object id) {
         return mongoTemplate.findById(id, getEntityClass());
+    }
+
+    @Override
+    public <T> T findOne(Query query, Class<T> clazz) {
+        return mongoTemplate.findOne(query, clazz, mongoTemplate.getCollectionName(getEntityClass()));
+    }
+
+    @Override
+    public <T> T findOne(Q criteria, Consumer<Query> consumer, Class<T> clazz) {
+        Query query = buildQuery(criteria, false);
+        if (consumer != null) {
+            consumer.accept(query);
+        }
+        return mongoTemplate.findOne(query, clazz, mongoTemplate.getCollectionName(getEntityClass()));
     }
 
     @Override
@@ -63,7 +92,7 @@ public abstract class MongoBaseServiceImpl<M, Q extends CommonQueryCriteria> ext
         long count = mongoTemplate.count(query, getEntityClass());
         List<T> list;
         if (count > 0) {
-            query.skip(criteria.getSize() * (criteria.getPage() - 1)).limit(criteria.getSize());
+            query.skip((long) criteria.getSize() * (criteria.getPage() - 1)).limit(criteria.getSize());
             list = mongoTemplate.find(query, clazz, mongoTemplate.getCollectionName(getEntityClass()));
         } else {
             list = new ArrayList<>();
