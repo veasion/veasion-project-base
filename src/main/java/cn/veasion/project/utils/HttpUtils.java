@@ -126,7 +126,7 @@ public class HttpUtils {
 
     public static HttpResponse requestWithEventStream(HttpRequest request, Consumer<String> dataConsumer) throws Exception {
         if (request.getMaxSocketTimeout() == null) {
-            request.setMaxSocketTimeout(300_000);
+            request.setMaxSocketTimeout(30_000);
         }
         request.setResponseHandler(entity -> {
             StringBuilder sb = new StringBuilder();

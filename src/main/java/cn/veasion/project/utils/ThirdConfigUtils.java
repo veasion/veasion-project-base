@@ -6,6 +6,8 @@ import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 
 /**
@@ -16,29 +18,22 @@ import java.util.Properties;
  */
 public class ThirdConfigUtils {
 
-    private static final String CHARSET = "GBK";
-    private static Properties properties;
+    public static String CHARSET = "GBK";
+    private static final Map<String, String> config;
 
     static {
+        config = new HashMap<>();
         reload();
     }
 
     public synchronized static void reload() {
-        properties = new Properties();
-        try {
-            try (InputStream is = ThirdConfigUtils.class.getClassLoader().getResourceAsStream("third.properties")) {
-                if (is != null) {
-                    properties.load(new InputStreamReader(is, CHARSET));
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        String extConfigPath = properties.getProperty("extConfigPath");
+        load("third.properties");
+        String extConfigPath = config.get("extConfigPath");
         if (StringUtils.isNotEmpty(extConfigPath)) {
             try {
                 File file = new File(extConfigPath);
                 if (!file.exists()) {
+                    System.err.println("扩展配置不存在：" + extConfigPath);
                     return;
                 }
                 Properties ext_properties = new Properties();
@@ -46,32 +41,50 @@ public class ThirdConfigUtils {
                     ext_properties.load(new InputStreamReader(is, CHARSET));
                 }
                 if (ext_properties.size() > 0) {
-                    for (Object key : ext_properties.keySet()) {
-                        if (key instanceof String) {
-                            properties.put(key, ext_properties.getProperty((String) key));
-                        }
+                    for (Map.Entry<Object, Object> entry : ext_properties.entrySet()) {
+                        config.put(entry.getKey().toString(), entry.getValue() == null ? null : entry.getValue().toString());
                     }
                 }
             } catch (Exception e) {
+                System.err.println("加载扩展配置失败：" + extConfigPath);
                 e.printStackTrace();
             }
         }
     }
 
+    public synchronized static boolean load(String name) {
+        try {
+            try (InputStream is = ThirdConfigUtils.class.getClassLoader().getResourceAsStream(name)) {
+                if (is != null) {
+                    Properties properties = new Properties();
+                    properties.load(new InputStreamReader(is, CHARSET));
+                    for (Map.Entry<Object, Object> entry : properties.entrySet()) {
+                        config.put(entry.getKey().toString(), entry.getValue() == null ? null : entry.getValue().toString());
+                    }
+                }
+            }
+            return true;
+        } catch (Exception e) {
+            System.err.println("加载配置文件失败：" + name);
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     public static String getProperty(String key) {
-        return properties.getProperty(key);
+        return config.get(key);
     }
 
     public static <T> T getProperty(String key, Class<T> clazz) {
-        return TypeUtils.convert(properties.getProperty(key), clazz);
+        return TypeUtils.convert(getProperty(key), clazz);
     }
 
     public synchronized static void setProperty(String key, String value) {
-        properties.setProperty(key, value);
+        config.put(key, value);
     }
 
     public static String getProperty(String key, String defVal) {
-        String property = properties.getProperty(key);
+        String property = getProperty(key);
         return StringUtils.isNotEmpty(property) ? property : defVal;
     }
 

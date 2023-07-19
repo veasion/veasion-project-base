@@ -44,7 +44,7 @@ public abstract class AbstractWebSocketClientHandler extends SimpleChannelInboun
     public void handlerAdded(ChannelHandlerContext ctx) {
         this.handshakeFuture = ctx.newPromise();
         if (log.isDebugEnabled()) {
-            log.info("建立连接");
+            log.debug("建立连接");
         }
     }
 
@@ -53,7 +53,7 @@ public abstract class AbstractWebSocketClientHandler extends SimpleChannelInboun
         ctx.fireChannelActive();
         closeCountDownLatch = new CountDownLatch(1);
         if (log.isDebugEnabled()) {
-            log.info("连接成功");
+            log.debug("连接成功");
         }
     }
 

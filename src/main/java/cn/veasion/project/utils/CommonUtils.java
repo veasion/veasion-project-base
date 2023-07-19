@@ -1,6 +1,8 @@
 package cn.veasion.project.utils;
 
 import java.lang.reflect.Array;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -86,6 +88,10 @@ public class CommonUtils {
                 return value1.compareTo(value2);
             }
         });
+    }
+
+    public static <T> List<T> asList(T... obj) {
+        return new ArrayList<>(Arrays.asList(obj));
     }
 
     public static MapBuilder<String, Object> buildMap() {

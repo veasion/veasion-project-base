@@ -347,4 +347,14 @@ public class StringUtils extends org.apache.commons.lang3.StringUtils {
         }
     }
 
+    public static String sub(String str, int maxLength, boolean append3Point) {
+        if (str == null || str.length() <= maxLength) {
+            return str;
+        } else if (append3Point) {
+            return str.substring(0, maxLength) + "...";
+        } else {
+            return str.substring(0, maxLength);
+        }
+    }
+
 }

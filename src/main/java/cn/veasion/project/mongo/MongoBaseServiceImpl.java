@@ -131,14 +131,14 @@ public abstract class MongoBaseServiceImpl<M, Q extends CommonQueryCriteria> ext
             return 0;
         }
         Query query = new Query(Criteria.where("_id").is(id));
-        DeleteResult result = mongoTemplate.remove(query, getCollectionName());
+        DeleteResult result = mongoTemplate.remove(query, getEntityClass());
         return (int) result.getDeletedCount();
     }
 
     @Override
     public int delete(Q criteria) {
         Query query = buildQuery(criteria, false);
-        DeleteResult result = mongoTemplate.remove(query, getCollectionName());
+        DeleteResult result = mongoTemplate.remove(query, getEntityClass());
         return (int) result.getDeletedCount();
     }
 
