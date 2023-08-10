@@ -26,7 +26,7 @@ public class R<T> implements Serializable {
     }
 
     public R(T data) {
-        this(SUCCESS, "操作成功", data);
+        this(SUCCESS, "ok", data);
     }
 
     public R(int code, String message, T data) {

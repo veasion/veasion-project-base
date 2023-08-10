@@ -38,8 +38,10 @@ import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -68,11 +70,11 @@ public class HttpUtils {
         CONNECTION_MANAGER.setDefaultMaxPerRoute(100);
     }
 
-    public static HttpResponse get(String url) throws Exception {
+    public static HttpResponse get(String url) {
         return get(url, null);
     }
 
-    public static HttpResponse get(String url, Map<String, Object> params) throws Exception {
+    public static HttpResponse get(String url, Map<String, Object> params) {
         String urlLinks = getUrlLinks(params);
         if (urlLinks != null) {
             if (url.contains("?")) {
@@ -103,7 +105,7 @@ public class HttpUtils {
         }
     }
 
-    public static HttpResponse postJson(String url, String bodyJson) throws Exception {
+    public static HttpResponse postJson(String url, String bodyJson) {
         HttpRequest request = HttpRequest.build(url, "POST").setBody(bodyJson);
         if (request.getHeaders() == null) {
             request.setHeaders(Collections.singletonMap(CONTENT_TYPE, CONTENT_TYPE_JSON));
@@ -113,7 +115,7 @@ public class HttpUtils {
         return request(request);
     }
 
-    public static HttpResponse postForm(String url, Map<String, Object> params) throws Exception {
+    public static HttpResponse postForm(String url, Map<String, Object> params) {
         String urlLinks = getUrlLinks(params);
         HttpRequest request = HttpRequest.build(url, "POST").setBody(urlLinks != null ? urlLinks : "");
         if (request.getHeaders() == null) {
@@ -124,7 +126,7 @@ public class HttpUtils {
         return request(request);
     }
 
-    public static HttpResponse requestWithEventStream(HttpRequest request, Consumer<String> dataConsumer) throws Exception {
+    public static HttpResponse requestWithEventStream(HttpRequest request, Consumer<String> dataConsumer) {
         if (request.getMaxSocketTimeout() == null) {
             request.setMaxSocketTimeout(30_000);
         }
@@ -150,30 +152,68 @@ public class HttpUtils {
         return HttpUtils.request(request);
     }
 
-    public static String getUrlLinks(Map<String, Object> params) throws UnsupportedEncodingException {
-        if (params != null && !params.isEmpty()) {
-            StringBuilder sb = new StringBuilder();
-            for (Map.Entry<String, Object> entry : params.entrySet()) {
-                if (StringUtils.hasText(entry.getKey())) {
-                    sb.append(entry.getKey()).append("=");
-                    if (entry.getValue() != null) {
-                        sb.append(URLEncoder.encode(entry.getValue().toString(), "UTF-8"));
-                    }
-                    sb.append("&");
-                }
-            }
-            if (sb.length() > 0) {
-                sb.setLength(sb.length() - 1);
-            }
-            return sb.toString();
+    public static String getUrlLinks(Map<String, Object> params) {
+        if (params == null || params.isEmpty()) {
+            return null;
         }
-        return null;
+        StringBuilder sb = new StringBuilder();
+        try {
+            String[] sortedKeys = params.keySet().toArray(new String[0]);
+            Arrays.sort(sortedKeys);
+            for (String key : sortedKeys) {
+                if (key == null || key.length() == 0) {
+                    continue;
+                }
+                Object value = params.get(key);
+                sb.append(key).append("=");
+                if (value != null) {
+                    sb.append(URLEncoder.encode(value.toString(), "UTF-8"));
+                }
+                sb.append("&");
+            }
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        }
+        if (sb.length() > 0) {
+            sb.setLength(sb.length() - 1);
+        }
+        return sb.toString();
+    }
+
+    @SuppressWarnings("unchecked")
+    public static Map<String, Object> parseUrlLinks(String params) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        if (params == null || params.isEmpty()) {
+            return result;
+        }
+        for (String param : params.split("&")) {
+            String[] split = param.split("=");
+            String key = split[0];
+            String value = "";
+            if (split.length > 1) {
+                value = split[1];
+            }
+            if (result.containsKey(key)) {
+                Object o = result.get(key);
+                if (o instanceof List) {
+                    ((List<Object>) o).add(value);
+                } else {
+                    List<Object> list = new ArrayList<>();
+                    list.add(o);
+                    list.add(value);
+                    result.put(key, list);
+                }
+            } else {
+                result.put(key, value);
+            }
+        }
+        return result;
     }
 
     /**
      * 通用接口请求
      */
-    public static HttpResponse request(HttpRequest request) throws Exception {
+    public static HttpResponse request(HttpRequest request) {
         HttpRequestBase requestBase = toRequest(request);
         Map<String, String> headers = request.getHeaders();
         ContentType contentType = null;
@@ -228,7 +268,7 @@ public class HttpUtils {
             return httpResponse;
         } catch (Exception e) {
             requestBase.abort();
-            throw e;
+            throw new RuntimeException("请求异常", e);
         } finally {
             requestBase.releaseConnection();
         }
@@ -332,8 +372,7 @@ public class HttpUtils {
         Collections.sort(keys);
         StringBuilder sb = new StringBuilder();
         try {
-            for (int i = 0; i < keys.size(); i++) {
-                String key = keys.get(i);
+            for (String key : keys) {
                 if (key == null || "".equals(key)) {
                     continue;
                 }

@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -191,6 +192,11 @@ public class CacheServiceImpl implements CacheService {
     }
 
     @Override
+    public boolean expireAt(String key, Date date) {
+        return Boolean.TRUE.equals(redisTemplate.expireAt(key, date));
+    }
+
+    @Override
     public boolean hasKey(String key) {
         return Boolean.TRUE.equals(redisTemplate.hasKey(key));
     }
@@ -198,6 +204,11 @@ public class CacheServiceImpl implements CacheService {
     @Override
     public Long incr(String key, long l) {
         return redisTemplate.opsForValue().increment(key, l);
+    }
+
+    @Override
+    public Long incrHash(String mainKey, String key, long l) {
+        return redisTemplate.opsForHash().increment(mainKey, key, l);
     }
 
     @Override

@@ -3,6 +3,7 @@ package cn.veasion.project.service;
 import org.springframework.data.redis.core.RedisTemplate;
 
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
@@ -70,9 +71,13 @@ public interface CacheService {
 
     boolean expire(String key, long time, TimeUnit timeUnit);
 
+    boolean expireAt(String key, Date date);
+
     boolean hasKey(String key);
 
     Long incr(String key, long l);
+
+    Long incrHash(String mainKey, String key, long l);
 
     void delete(String key);
 

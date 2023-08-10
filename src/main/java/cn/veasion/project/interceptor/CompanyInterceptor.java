@@ -133,7 +133,7 @@ public class CompanyInterceptor extends AbstractInterceptor {
         }
     }
 
-    private List<Long> companyIds() {
+    public static List<Long> companyIds() {
         Long companyId = companyThreadLocal.get();
         if (companyId != null) {
             return Arrays.asList(SessionHelper.DEFAULT_COMPANY_ID, companyId);

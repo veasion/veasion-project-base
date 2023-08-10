@@ -4,9 +4,12 @@ import cn.hutool.core.collection.CollectionUtil;
 import cn.veasion.db.base.Page;
 import cn.veasion.db.criteria.CommonQueryCriteria;
 import cn.veasion.db.query.OrderParam;
+import cn.veasion.project.interceptor.CompanyInterceptor;
+import cn.veasion.project.model.ICompanyId;
 import cn.veasion.project.service.InitEntity;
 import com.mongodb.client.result.DeleteResult;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.InvalidMongoDbApiUsageException;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -61,11 +64,14 @@ public abstract class MongoBaseServiceImpl<M, Q extends CommonQueryCriteria> ext
 
     @Override
     public M getById(Object id) {
-        return mongoTemplate.findById(id, getEntityClass());
+        Query query = new Query(Criteria.where("_id").is(id));
+        handleCompanyInterceptor(query);
+        return mongoTemplate.findOne(query, getEntityClass());
     }
 
     @Override
     public <T> T findOne(Query query, Class<T> clazz) {
+        handleCompanyInterceptor(query);
         return mongoTemplate.findOne(query, clazz, mongoTemplate.getCollectionName(getEntityClass()));
     }
 
@@ -80,6 +86,7 @@ public abstract class MongoBaseServiceImpl<M, Q extends CommonQueryCriteria> ext
 
     @Override
     public <T> List<T> list(Query query, Class<T> clazz) {
+        handleCompanyInterceptor(query);
         return mongoTemplate.find(query, clazz, mongoTemplate.getCollectionName(getEntityClass()));
     }
 
@@ -131,6 +138,7 @@ public abstract class MongoBaseServiceImpl<M, Q extends CommonQueryCriteria> ext
             return 0;
         }
         Query query = new Query(Criteria.where("_id").is(id));
+        handleCompanyInterceptor(query);
         DeleteResult result = mongoTemplate.remove(query, getEntityClass());
         return (int) result.getDeletedCount();
     }
@@ -138,6 +146,7 @@ public abstract class MongoBaseServiceImpl<M, Q extends CommonQueryCriteria> ext
     @Override
     public int delete(Q criteria) {
         Query query = buildQuery(criteria, false);
+        handleCompanyInterceptor(query);
         DeleteResult result = mongoTemplate.remove(query, getEntityClass());
         return (int) result.getDeletedCount();
     }
@@ -172,7 +181,24 @@ public abstract class MongoBaseServiceImpl<M, Q extends CommonQueryCriteria> ext
                 }
             }
         }
+        handleCompanyInterceptor(query);
         return query;
+    }
+
+    protected void handleCompanyInterceptor(Query query) {
+        if (companyInterceptor()) {
+            try {
+                query.addCriteria(Criteria.where("companyId").in(CompanyInterceptor.companyIds()));
+            } catch (InvalidMongoDbApiUsageException ignored) {
+            }
+        }
+    }
+
+    protected boolean companyInterceptor() {
+        if (CompanyInterceptor.isSkip()) {
+            return false;
+        }
+        return ICompanyId.class.isAssignableFrom(getEntityClass());
     }
 
     protected String getCollectionName() {
