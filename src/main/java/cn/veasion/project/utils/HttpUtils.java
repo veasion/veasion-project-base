@@ -14,6 +14,10 @@ import org.apache.http.client.methods.HttpPatch;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.config.Registry;
+import org.apache.http.config.RegistryBuilder;
+import org.apache.http.conn.socket.ConnectionSocketFactory;
+import org.apache.http.conn.socket.PlainConnectionSocketFactory;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.ContentType;
@@ -64,8 +68,7 @@ public class HttpUtils {
     private static final int MAX_SOCKET_TIMEOUT = 90000;
 
     static {
-        // http
-        CONNECTION_MANAGER = new PoolingHttpClientConnectionManager();
+        CONNECTION_MANAGER = new PoolingHttpClientConnectionManager(getDefaultRegistry());
         CONNECTION_MANAGER.setMaxTotal(500);
         CONNECTION_MANAGER.setDefaultMaxPerRoute(100);
     }
@@ -138,8 +141,8 @@ public class HttpUtils {
                         String line;
                         while ((line = bufferedReader.readLine()) != null) {
                             sb.append(line).append("\n");
-                            if (line.startsWith("data: ")) {
-                                dataConsumer.accept(line.substring(6));
+                            if (line.startsWith("data:")) {
+                                dataConsumer.accept(line.substring(line.startsWith("data: ") ? 6 : 5));
                             }
                         }
                     }
@@ -149,7 +152,7 @@ public class HttpUtils {
             }
             return sb.toString();
         });
-        return HttpUtils.request(request);
+        return request(request);
     }
 
     public static String getUrlLinks(Map<String, Object> params) {
@@ -235,7 +238,7 @@ public class HttpUtils {
         setBodyEntity(requestBase, contentType, request.getBody());
 
         try {
-            HttpClient client = getHttpClient(request, request.getUrl(), requestBase);
+            HttpClient client = getHttpClient(request, requestBase);
             org.apache.http.HttpResponse response;
             long startTime = System.currentTimeMillis();
             response = client.execute(requestBase);
@@ -328,7 +331,7 @@ public class HttpUtils {
         }
     }
 
-    private static HttpClient getHttpClient(HttpRequest req, String url, HttpRequestBase request) {
+    private static HttpClient getHttpClient(HttpRequest req, HttpRequestBase request) {
         RequestConfig.Builder customReqConf = RequestConfig.custom();
         if (req.getMaxSocketTimeout() != null) {
             customReqConf.setSocketTimeout(req.getMaxSocketTimeout());
@@ -338,33 +341,43 @@ public class HttpUtils {
         customReqConf.setConnectTimeout(MAX_CONNECT_TIMEOUT);
         customReqConf.setConnectionRequestTimeout(MAX_CONNECT_TIMEOUT);
         request.setConfig(customReqConf.build());
-        if (isHttps(url)) {
-            try {
-                // ssl https
-                SSLContext context = SSLContext.getInstance("TLS");
-                context.init(null, new X509TrustManager[]{new X509TrustManager() {
-                    public void checkClientTrusted(X509Certificate[] x509Certificates, String s) {
-                    }
-
-                    public void checkServerTrusted(X509Certificate[] x509Certificates, String s) {
-                    }
-
-                    public X509Certificate[] getAcceptedIssuers() {
-                        return new X509Certificate[0];
-                    }
-                }}, new SecureRandom());
-                return HttpClients.custom().setSSLSocketFactory(new SSLConnectionSocketFactory(context)).setConnectionManager(CONNECTION_MANAGER).build();
-            } catch (Exception e) {
-                e.printStackTrace();
-                return HttpClients.createDefault();
-            }
-        } else {
-            return HttpClients.custom().setConnectionManager(CONNECTION_MANAGER).build();
-        }
+        return HttpClients.custom().setConnectionManager(CONNECTION_MANAGER).build();
     }
 
-    private static boolean isHttps(String url) {
-        return url != null && url.trim().startsWith("https");
+    private static Registry<ConnectionSocketFactory> getDefaultRegistry() {
+        try {
+            // ssl
+            SSLContext context = SSLContext.getInstance("TLS");
+            context.init(null, new X509TrustManager[]{new X509TrustManager() {
+                public void checkClientTrusted(X509Certificate[] x509Certificates, String s) {
+                }
+
+                public void checkServerTrusted(X509Certificate[] x509Certificates, String s) {
+                }
+
+                public X509Certificate[] getAcceptedIssuers() {
+                    return new X509Certificate[0];
+                }
+            }}, new SecureRandom());
+            /*
+            SSLContext context = SSLContexts.custom().loadTrustMaterial(null, new TrustStrategy() {
+                    @Override
+                    public boolean isTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
+                        return true;
+                    }
+                }).build();
+            */
+            return RegistryBuilder.<ConnectionSocketFactory>create()
+                    .register("http", PlainConnectionSocketFactory.getSocketFactory())
+                    .register("https", new SSLConnectionSocketFactory(context))
+                    .build();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return RegistryBuilder.<ConnectionSocketFactory>create()
+                    .register("http", PlainConnectionSocketFactory.getSocketFactory())
+                    .register("https", SSLConnectionSocketFactory.getSocketFactory())
+                    .build();
+        }
     }
 
     public static String toParamLinks(Map<String, Object> params, boolean encode) {
@@ -544,4 +557,5 @@ public class HttpUtils {
             this.headers = headers;
         }
     }
+
 }

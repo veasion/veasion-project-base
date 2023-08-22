@@ -8,6 +8,7 @@ import java.math.BigDecimal;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.UnknownHostException;
+import java.util.Base64;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.List;
@@ -355,6 +356,26 @@ public class StringUtils extends org.apache.commons.lang3.StringUtils {
         } else {
             return str.substring(0, maxLength);
         }
+    }
+
+    public static String base64Encode(byte[] data) {
+        return Base64.getEncoder().encodeToString(data);
+    }
+
+    public static byte[] base64Decoder(String base64) {
+        return Base64.getDecoder().decode(base64);
+    }
+
+    public static String base64EncodeWithUrl(byte[] data) {
+        return base64Encode(data).replace("+", "-").replace("/", "_").replace("=", "");
+    }
+
+    public static byte[] base64DecoderWithUrl(String base64Url) {
+        String str = base64Url.replace("-", "+").replace("_", "/");
+        for (int i = 0; i < str.length() % 4; i++) {
+            str += "=";
+        }
+        return base64Decoder(str);
     }
 
 }

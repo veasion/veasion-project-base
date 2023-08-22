@@ -1,14 +1,18 @@
 package cn.veasion.project.utils;
 
 import cn.veasion.db.utils.TypeUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 /**
  * ThirdConfigUtils
@@ -18,22 +22,44 @@ import java.util.Properties;
  */
 public class ThirdConfigUtils {
 
+    private final static Logger LOGGER = LoggerFactory.getLogger(ThirdConfigUtils.class);
+
     public static String CHARSET = "GBK";
-    private static final Map<String, String> config;
+    public static String DEFAULT_PATH = "third.properties";
+    public static String EXT_PATH_KEY = "extConfigPath";
+    private static final Map<String, Set<String>> filenamePathMap;
+    private static final Map<String, Map<String, String>> filenameConfig;
 
     static {
-        config = new HashMap<>();
-        reload();
+        filenamePathMap = new HashMap<>();
+        filenameConfig = new HashMap<>();
+        loadDefault();
     }
 
     public synchronized static void reload() {
-        load("third.properties");
-        String extConfigPath = config.get("extConfigPath");
+        filenameConfig.clear();
+        for (Map.Entry<String, Set<String>> entry : filenamePathMap.entrySet()) {
+            for (String path : entry.getValue()) {
+                if ("".equals(entry.getKey()) && DEFAULT_PATH.equals(path)) {
+                    loadDefault();
+                } else {
+                    load(entry.getKey(), path);
+                }
+            }
+        }
+    }
+
+    private static void loadDefault() {
+        Map<String, String> config = load(DEFAULT_PATH);
+        if (config == null) {
+            return;
+        }
+        String extConfigPath = config.get(EXT_PATH_KEY);
         if (StringUtils.isNotEmpty(extConfigPath)) {
             try {
                 File file = new File(extConfigPath);
                 if (!file.exists()) {
-                    System.err.println("扩展配置不存在：" + extConfigPath);
+                    LOGGER.error("扩展配置不存在：" + extConfigPath);
                     return;
                 }
                 Properties ext_properties = new Properties();
@@ -46,45 +72,78 @@ public class ThirdConfigUtils {
                     }
                 }
             } catch (Exception e) {
-                System.err.println("加载扩展配置失败：" + extConfigPath);
-                e.printStackTrace();
+                LOGGER.error("加载扩展配置失败：" + extConfigPath, e);
             }
         }
     }
 
-    public synchronized static boolean load(String name) {
+    public synchronized static Map<String, String> load(String path) {
+        return load("", path);
+    }
+
+    public synchronized static Map<String, String> load(String filename, String path) {
         try {
-            try (InputStream is = ThirdConfigUtils.class.getClassLoader().getResourceAsStream(name)) {
+            Map<String, String> config = null;
+            try (InputStream is = ThirdConfigUtils.class.getClassLoader().getResourceAsStream(path)) {
                 if (is != null) {
+                    filenamePathMap.compute(filename, (k, v) -> {
+                        v = new HashSet<>();
+                        v.add(path);
+                        return v;
+                    });
+                    config = filenameConfig.computeIfAbsent(filename, k -> new HashMap<>());
                     Properties properties = new Properties();
                     properties.load(new InputStreamReader(is, CHARSET));
                     for (Map.Entry<Object, Object> entry : properties.entrySet()) {
-                        config.put(entry.getKey().toString(), entry.getValue() == null ? null : entry.getValue().toString());
+                        String key = entry.getKey().toString();
+                        String value = entry.getValue() == null ? null : entry.getValue().toString();
+                        config.put(key, value);
                     }
                 }
             }
-            return true;
+            return config;
         } catch (Exception e) {
-            System.err.println("加载配置文件失败：" + name);
-            e.printStackTrace();
-            return false;
+            LOGGER.error("加载配置文件失败：" + path, e);
+            return null;
         }
     }
 
     public static String getProperty(String key) {
-        return config.get(key);
+        return getFilenameProperty("", key);
     }
 
     public static <T> T getProperty(String key, Class<T> clazz) {
-        return TypeUtils.convert(getProperty(key), clazz);
+        return TypeUtils.convert(getFilenameProperty("", key), clazz);
     }
 
-    public synchronized static void setProperty(String key, String value) {
-        config.put(key, value);
+    public static void setProperty(String key, String value) {
+        setFilenameProperty("", key, value);
     }
 
     public static String getProperty(String key, String defVal) {
-        String property = getProperty(key);
+        return getFilenameProperty("", key, defVal);
+    }
+
+    public static String getFilenameProperty(String filename, String key) {
+        Map<String, String> map = filenameConfig.get(filename);
+        return map != null ? map.get(key) : null;
+    }
+
+    public static <T> T getFilenameProperty(String filename, String key, Class<T> clazz) {
+        return TypeUtils.convert(getFilenameProperty(filename, key), clazz);
+    }
+
+    public static void setFilenameProperty(String filename, String key, String value) {
+        synchronized (filenameConfig) {
+            Map<String, String> map = filenameConfig.get(filename);
+            if (map != null) {
+                map.put(key, value);
+            }
+        }
+    }
+
+    public static String getFilenameProperty(String filename, String key, String defVal) {
+        String property = getFilenameProperty(filename, key);
         return StringUtils.isNotEmpty(property) ? property : defVal;
     }
 
