@@ -1,5 +1,6 @@
 package cn.veasion.project.service;
 
+import cn.veasion.db.utils.LeftRight;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
@@ -70,6 +71,26 @@ public class CacheServiceImpl implements CacheService {
             value = supplier.get();
             if (time != null) {
                 redisTemplate.opsForValue().set(key, value, time, timeUnit);
+            } else {
+                redisTemplate.opsForValue().set(key, value);
+            }
+        }
+        return value;
+    }
+
+    @Override
+    public <R> R loadCacheWithExpireTime(String key, Supplier<LeftRight<R, Date>> supplier, boolean refresh) {
+        R value = refresh ? null : tryGetValue(key);
+        if (value == null) {
+            LeftRight<R, Date> data = supplier.get();
+            if (data == null) {
+                return null;
+            }
+            value = data.getLeft();
+            Date date = data.getRight();
+            if (date != null) {
+                long time = date.getTime() - System.currentTimeMillis();
+                redisTemplate.opsForValue().set(key, value, time, TimeUnit.MILLISECONDS);
             } else {
                 redisTemplate.opsForValue().set(key, value);
             }

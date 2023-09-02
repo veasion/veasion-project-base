@@ -11,7 +11,6 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
 import org.apache.poi.xssf.usermodel.XSSFColor;
 
-import java.awt.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -50,7 +49,7 @@ public class ExcelStyleUtils {
     }
 
     public static XSSFColor getColor(int r, int g, int b) {
-        return new XSSFColor(new Color(r, g, b));
+        return new XSSFColor(new java.awt.Color(r, g, b), null);
     }
 
     public static CellStyle color(CellStyle cellStyle, int r, int g, int b, BiConsumer<XSSFCellStyle, XSSFColor> consumer) {

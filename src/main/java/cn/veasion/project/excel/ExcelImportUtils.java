@@ -65,6 +65,9 @@ public class ExcelImportUtils {
         JSONObject jsonObject;
         for (int i = 1; i <= lastRowNum; i++) {
             XSSFRow row = sheet.getRow(i);
+            if (row == null) {
+                continue;
+            }
             jsonObject = new JSONObject();
             for (int j = 0; j < lastCellNum; j++) {
                 XSSFCell cell = row.getCell(j);

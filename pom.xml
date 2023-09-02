@@ -7,7 +7,7 @@
 
     <groupId>cn.veasion</groupId>
     <artifactId>veasion-project-base</artifactId>
-    <version>1.1.1</version>
+    <version>1.1.2</version>
 
     <name>veasion-project-base</name>
     <url>https://github.com/veasion/veasion-project-base</url>
@@ -78,14 +78,13 @@
         <redisson.version>3.17.0</redisson.version>
         <veasion-db.version>1.2.7</veasion-db.version>
         <veasion-db-mybatis.version>1.0.4</veasion-db-mybatis.version>
-        <poi.version>5.0.0</poi.version>
-        <hutool.version>5.3.4</hutool.version>
+        <poi.version>5.2.3</poi.version>
         <netty.version>4.1.75.Final</netty.version>
         <fastjson.version>1.2.70</fastjson.version>
         <jjwt.version>0.11.1</jjwt.version>
-        <commons-io.version>2.5</commons-io.version>
+        <commons-io.version>2.11.0</commons-io.version>
         <httpclient.version>4.5.14</httpclient.version>
-        <commons-pool2.version>2.5.0</commons-pool2.version>
+        <commons-pool2.version>2.11.0</commons-pool2.version>
         <commons-lang3.version>3.12.0</commons-lang3.version>
     </properties>
 
@@ -179,13 +178,6 @@
             <groupId>cn.veasion</groupId>
             <artifactId>veasion-db-mybatis</artifactId>
             <version>${veasion-db-mybatis.version}</version>
-        </dependency>
-
-        <!-- 工具包 -->
-        <dependency>
-            <groupId>cn.hutool</groupId>
-            <artifactId>hutool-all</artifactId>
-            <version>${hutool.version}</version>
         </dependency>
 
         <!--commons-->

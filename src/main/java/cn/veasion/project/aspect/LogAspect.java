@@ -1,12 +1,12 @@
 package cn.veasion.project.aspect;
 
-import cn.hutool.json.JSONUtil;
 import cn.veasion.project.model.SysLogVO;
 import cn.veasion.project.service.SysLogService;
 import cn.veasion.project.session.SessionHelper;
 import cn.veasion.project.utils.RequestHolder;
 import cn.veasion.project.utils.SpringBeanUtils;
 import cn.veasion.project.utils.StringUtils;
+import com.alibaba.fastjson.JSON;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.AfterThrowing;
@@ -34,7 +34,7 @@ import java.util.Objects;
 @Component
 public class LogAspect {
 
-    private ThreadLocal<Long> currentTime = new ThreadLocal<>();
+    private final ThreadLocal<Long> currentTime = new ThreadLocal<>();
 
     /**
      * 配置切入点
@@ -127,7 +127,7 @@ public class LogAspect {
         if (argList.isEmpty()) {
             return "";
         }
-        return argList.size() == 1 ? JSONUtil.toJsonStr(argList.get(0)) : JSONUtil.toJsonStr(argList);
+        return argList.size() == 1 ? JSON.toJSONString(argList.get(0)) : JSON.toJSONString(argList);
     }
 
 }

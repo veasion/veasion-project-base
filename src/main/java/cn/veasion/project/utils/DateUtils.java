@@ -1,8 +1,10 @@
 package cn.veasion.project.utils;
 
-import cn.hutool.core.date.DateUtil;
-import cn.hutool.core.date.Week;
-
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Calendar;
 import java.util.Date;
 
@@ -11,7 +13,60 @@ import java.util.Date;
  *
  * @author luozhuowei
  */
-public class DateUtils extends DateUtil {
+public class DateUtils {
+
+    public static final String DATE_PATTERN = "yyyy-MM-dd";
+    public static final String DATE_TIME_PATTERN = "yyyy-MM-dd HH:mm:ss";
+
+    public static String format(LocalDateTime localDateTime, String format) {
+        if (localDateTime != null && !StringUtils.isBlank(format)) {
+            DateTimeFormatter df = DateTimeFormatter.ofPattern(format);
+            return localDateTime.format(df);
+        } else {
+            return null;
+        }
+    }
+
+    public static String format(Date date, String format) {
+        if (date != null && !StringUtils.isBlank(format)) {
+            SimpleDateFormat sdf = new SimpleDateFormat(format);
+            return format(date, sdf);
+        } else {
+            return null;
+        }
+    }
+
+    public static String format(Date date, DateFormat format) {
+        return null != format && null != date ? format.format(date) : null;
+    }
+
+    public static String format(Date date, DateTimeFormatter format) {
+        return null != format && null != date ? format.format(date.toInstant()) : null;
+    }
+
+    public static String formatDateTime(Date date) {
+        return new SimpleDateFormat(DATE_TIME_PATTERN).format(date);
+    }
+
+    public static String formatDate(Date date) {
+        return null == date ? null : new SimpleDateFormat(DATE_PATTERN).format(date);
+    }
+
+    public static Date parseDateTime(String dateStr) {
+        return parse(dateStr, DATE_TIME_PATTERN);
+    }
+
+    public static Date parseDate(String dateStr) {
+        return parse(dateStr, DATE_PATTERN);
+    }
+
+    public static Date parse(String dateStr, String dateFormat) {
+        try {
+            return new SimpleDateFormat(dateFormat).parse(dateStr);
+        } catch (ParseException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     public static Date addDays(Date date, int days) {
         if (date == null) {
@@ -121,24 +176,46 @@ public class DateUtils extends DateUtil {
     }
 
     public static String week(Date date) {
-        Week week = dayOfWeekEnum(date);
-        switch (week) {
-            case SUNDAY:
-                return "周日";
-            case MONDAY:
+        switch (weekOfDay(date)) {
+            case 1:
                 return "周一";
-            case TUESDAY:
+            case 2:
                 return "周二";
-            case WEDNESDAY:
+            case 3:
                 return "周三";
-            case THURSDAY:
+            case 4:
                 return "周四";
-            case FRIDAY:
+            case 5:
                 return "周五";
-            case SATURDAY:
+            case 6:
                 return "周六";
+            case 7:
+                return "周日";
         }
         return null;
+    }
+
+    public static int weekOfDay(Date date) {
+        Calendar instance = Calendar.getInstance();
+        instance.setTime(date);
+        int week = instance.get(Calendar.DAY_OF_WEEK);
+        week = week - 1;
+        if (week == 0) {
+            return 7;
+        }
+        return week;
+    }
+
+    public static int hour(Date date, boolean is24Hour) {
+        Calendar instance = Calendar.getInstance();
+        instance.setTime(date);
+        return instance.get(is24Hour ? Calendar.HOUR_OF_DAY : Calendar.HOUR);
+    }
+
+    public static int minute(Date date) {
+        Calendar instance = Calendar.getInstance();
+        instance.setTime(date);
+        return instance.get(Calendar.MINUTE);
     }
 
     public static int days(String startDate, String endDate) {

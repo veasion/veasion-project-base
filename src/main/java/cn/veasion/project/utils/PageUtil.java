@@ -6,7 +6,15 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
 
-public class PageUtil extends cn.hutool.core.util.PageUtil {
+public class PageUtil {
+
+    public static int totalPage(int totalCount, int pageSize) {
+        if (pageSize == 0) {
+            return 0;
+        } else {
+            return totalCount % pageSize == 0 ? totalCount / pageSize : totalCount / pageSize + 1;
+        }
+    }
 
     @SuppressWarnings("unchecked")
     public static <T> void batch(Consumer<T[]> consumer, T[] array, int maxSize) {

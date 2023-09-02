@@ -1,36 +1,39 @@
 package cn.veasion.project.utils;
 
-import cn.hutool.core.io.IoUtil;
-import cn.hutool.core.util.IdUtil;
-import cn.hutool.poi.excel.BigExcelWriter;
-import cn.hutool.poi.excel.ExcelUtil;
-import org.apache.poi.util.IOUtils;
-import org.apache.poi.xssf.streaming.SXSSFSheet;
+import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.apache.poi.util.IOUtils;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.CopyOption;
 import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
+import java.util.Objects;
+import java.util.function.BiFunction;
 
 /**
  * FileUtil
  *
  * @author luozhuowei
  */
-public class FileUtil extends cn.hutool.core.io.FileUtil {
+public class FileUtil {
 
     private static final Logger log = LoggerFactory.getLogger(FileUtil.class);
 
@@ -67,7 +70,7 @@ public class FileUtil extends cn.hutool.core.io.FileUtil {
         File file = null;
         try {
             // 用uuid作为文件名，防止生成的临时文件重复
-            file = new File(SYS_TEM_DIR + IdUtil.simpleUUID() + suffix);
+            file = new File(SYS_TEM_DIR + UUID.simpleUUID() + suffix);
             multipartFile.transferTo(file);
         } catch (IOException e) {
             log.error(e.getMessage(), e);
@@ -82,7 +85,164 @@ public class FileUtil extends cn.hutool.core.io.FileUtil {
         if (!suffix.startsWith(".")) {
             suffix = "." + suffix;
         }
-        return new File(FileUtil.SYS_TEM_DIR + IdUtil.simpleUUID() + suffix);
+        return new File(FileUtil.SYS_TEM_DIR + UUID.simpleUUID() + suffix);
+    }
+
+    /**
+     * 新文件
+     */
+    public static File newFile(File source, BiFunction<String, String, String> tempName) {
+        if (source == null) {
+            return new File(FileUtil.SYS_TEM_DIR + UUID.simpleUUID() + tempName.apply("", ""));
+        } else {
+            String parent = source.getParentFile().getAbsolutePath();
+            String name = source.getName();
+            String suffix = "";
+            int idx = name.lastIndexOf(".");
+            if (idx > -1) {
+                suffix = name.substring(idx);
+                name = name.substring(0, idx);
+            }
+            return new File(parent + File.separator + tempName.apply(name, suffix));
+        }
+    }
+
+    public static File mkParentDirs(File file) {
+        File parentFile = file.getParentFile();
+        if (null != parentFile && !parentFile.exists()) {
+            parentFile.mkdirs();
+        }
+        return parentFile;
+    }
+
+    public static File mkdir(File dir) {
+        if (dir == null) {
+            return null;
+        } else {
+            if (!dir.exists()) {
+                dir.mkdirs();
+            }
+            return dir;
+        }
+    }
+
+    public static void move(File src, File dest, boolean isOverride) {
+        if (!src.exists()) {
+            throw new IORuntimeException("File not found: " + src);
+        } else if (src.isDirectory() && dest.isFile()) {
+            throw new IORuntimeException("Can not move directory [" + src + "] to file [" + dest + "]");
+        } else {
+            if (isOverride && dest.isFile()) {
+                dest.delete();
+            }
+            if (src.isFile() && dest.isDirectory()) {
+                dest = new File(dest, src.getName());
+            }
+            if (!src.renameTo(dest)) {
+                try {
+                    copy(src, dest, isOverride);
+                } catch (Exception var4) {
+                    throw new IORuntimeException("Move [" + src + "] to [" + dest + "] failed!", var4);
+                }
+                del(src);
+            }
+        }
+    }
+
+    public static File copy(File src, File dest, boolean isOverride) {
+        if (src == null) {
+            throw new IORuntimeException("Source File is null !");
+        }
+        if (!src.exists()) {
+            throw new IORuntimeException("File not exist: " + src);
+        } else {
+            if (dest == null) {
+                throw new IORuntimeException("Destination File or directiory is null !");
+            }
+            if (Objects.equals(src, dest)) {
+                throw new IORuntimeException("Files '" + src + "' and '" + dest + "' are equal");
+            } else {
+                if (src.isDirectory()) {
+                    if (dest.exists() && !dest.isDirectory()) {
+                        throw new IORuntimeException("Src is a directory but dest is a file!");
+                    }
+                    if (isSub(src, dest)) {
+                        throw new IORuntimeException("Dest is a sub directory of src !");
+                    }
+                    File subDest = mkdir(checkSlip(dest, new File(dest, src.getName())));
+                    internalCopyDirContent(src, subDest, isOverride);
+                } else {
+                    internalCopyFile(src, dest, isOverride);
+                }
+                return dest;
+            }
+        }
+    }
+
+    private static void internalCopyDirContent(File src, File dest, boolean isOverride) {
+        if (!dest.exists()) {
+            dest.mkdirs();
+        } else if (!dest.isDirectory()) {
+            throw new IORuntimeException("Src [" + src.getPath() + "] is a directory but dest [" + dest.getPath() + "] is a file!");
+        }
+        String[] files = src.list();
+        if (files != null) {
+            for (String file : files) {
+                File srcFile = new File(src, file);
+                File destFile = new File(dest, file);
+                if (srcFile.isDirectory()) {
+                    internalCopyDirContent(srcFile, destFile, isOverride);
+                } else {
+                    internalCopyFile(srcFile, destFile, isOverride);
+                }
+            }
+        }
+    }
+
+    private static void internalCopyFile(File src, File dest, boolean isOverride) {
+        if (dest.exists()) {
+            if (dest.isDirectory()) {
+                dest = new File(dest, src.getName());
+            }
+
+            if (dest.exists() && !isOverride) {
+                return;
+            }
+        } else {
+            dest.getParentFile().mkdirs();
+        }
+
+        ArrayList<CopyOption> optionList = new ArrayList<>(2);
+        if (isOverride) {
+            optionList.add(StandardCopyOption.REPLACE_EXISTING);
+        }
+        optionList.add(StandardCopyOption.COPY_ATTRIBUTES);
+        try {
+            Files.copy(src.toPath(), dest.toPath(), optionList.toArray(new CopyOption[0]));
+        } catch (IOException e) {
+            throw new IORuntimeException(e);
+        }
+    }
+
+    public static File checkSlip(File parentFile, File file) throws IllegalArgumentException {
+        if (null != parentFile && null != file) {
+            String parentCanonicalPath;
+            String canonicalPath;
+            try {
+                parentCanonicalPath = parentFile.getCanonicalPath();
+                canonicalPath = file.getCanonicalPath();
+            } catch (IOException e) {
+                throw new IORuntimeException(e);
+            }
+            if (!canonicalPath.startsWith(parentCanonicalPath)) {
+                throw new IllegalArgumentException("New file is outside of the parent dir: " + file.getName());
+            }
+        }
+        return file;
+    }
+
+    public static boolean isSub(File parent, File sub) {
+        return sub.toPath().startsWith(parent.toPath());
     }
 
     /**
@@ -105,11 +265,66 @@ public class FileUtil extends cn.hutool.core.io.FileUtil {
     public static String getFileNameNoEx(String filename) {
         if ((filename != null) && (filename.length() > 0)) {
             int dot = filename.lastIndexOf('.');
-            if ((dot > -1) && (dot < (filename.length()))) {
+            if (dot > -1) {
                 return filename.substring(0, dot);
             }
         }
         return filename;
+    }
+
+    public static void writeUtf8String(String content, File file) {
+        writeString(content, file, StandardCharsets.UTF_8, false);
+    }
+
+    public static void appendUtf8String(String content, File file) {
+        appendString(content, file, StandardCharsets.UTF_8);
+    }
+
+    public static void appendString(String content, File file, Charset charset) {
+        writeString(content, file, charset, true);
+    }
+
+    public static void writeString(String content, File file, Charset charset, boolean append) {
+        if (!file.exists()) {
+            mkParentDirs(file);
+            try {
+                file.createNewFile();
+            } catch (Exception e) {
+                throw new IORuntimeException(e);
+            }
+        }
+        try (OutputStream outputStream = new FileOutputStream(file, append)) {
+            try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(outputStream, charset))) {
+                writer.write(content);
+                writer.flush();
+            }
+        } catch (IOException e) {
+            throw new IORuntimeException(e);
+        }
+    }
+
+    public static List<String> readLines(File file) {
+        return readLines(file, StandardCharsets.UTF_8);
+    }
+
+    public static List<String> readLines(File file, Charset charset) {
+        try {
+            return Files.readAllLines(file.toPath(), charset != null ? charset : StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            throw new IORuntimeException(e);
+        }
+    }
+
+    public static String readUtf8String(File file) {
+        return readString(file, StandardCharsets.UTF_8);
+    }
+
+    public static String readString(File file, Charset charset) {
+        try {
+            return FileUtils.readFileToString(file, charset);
+        } catch (IOException e) {
+            throw new IORuntimeException(e);
+        }
     }
 
     /**
@@ -122,7 +337,7 @@ public class FileUtil extends cn.hutool.core.io.FileUtil {
         }
         OutputStream os = null;
         try {
-            os = new FileOutputStream(file);
+            os = Files.newOutputStream(file.toPath());
             int bytesRead;
             int len = 8192;
             byte[] buffer = new byte[len];
@@ -175,37 +390,11 @@ public class FileUtil extends cn.hutool.core.io.FileUtil {
         return null;
     }
 
-    /**
-     * 导出excel
-     */
-    public static void downloadExcel(List<Map<String, Object>> list, HttpServletResponse response) throws IOException {
-        String tempPath = SYS_TEM_DIR + IdUtil.fastSimpleUUID() + ".xlsx";
-        File file = new File(tempPath);
-        BigExcelWriter writer = ExcelUtil.getBigWriter(file);
-        // 一次性写出内容，使用默认样式，强制输出标题
-        writer.write(list, true);
-        SXSSFSheet sheet = (SXSSFSheet) writer.getSheet();
-        //上面需要强转SXSSFSheet  不然没有trackAllColumnsForAutoSizing方法
-        sheet.trackAllColumnsForAutoSizing();
-        //列宽自适应
-        writer.autoSizeColumnAll();
-        //response为HttpServletResponse对象
-        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=utf-8");
-        //test.xls是弹出下载对话框的文件名，不能为中文，中文请自行编码
-        response.setHeader("Content-Disposition", "attachment;filename=file.xlsx");
-        ServletOutputStream out = response.getOutputStream();
-        // 终止后删除临时文件
-        file.deleteOnExit();
-        writer.flush(out, true);
-        //此处记得关闭输出Servlet流
-        IoUtil.close(out);
-    }
-
     public static void checkSize(long maxSize, long size) {
         // 10M
         int len = 10 * 1024 * 1024;
         if (size > (maxSize * len)) {
-            throw new RuntimeException("文件超出规定大小");
+            throw new IORuntimeException("文件超出规定大小");
         }
     }
 
@@ -219,6 +408,35 @@ public class FileUtil extends cn.hutool.core.io.FileUtil {
             return img1Md5.equals(img2Md5);
         }
         return false;
+    }
+
+    public static boolean del(File file) {
+        if (file != null && file.exists()) {
+            if (file.isDirectory()) {
+                boolean isOk = clean(file);
+                if (!isOk) {
+                    return false;
+                }
+            }
+            return file.delete();
+        } else {
+            return true;
+        }
+    }
+
+    public static boolean clean(File directory) {
+        if (directory != null && directory.exists() && directory.isDirectory()) {
+            File[] files = directory.listFiles();
+            if (null != files) {
+                for (File childFile : files) {
+                    boolean isOk = del(childFile);
+                    if (!isOk) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
     }
 
     /**

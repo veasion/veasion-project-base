@@ -1,5 +1,6 @@
 package cn.veasion.project.service;
 
+import cn.veasion.db.utils.LeftRight;
 import org.springframework.data.redis.core.RedisTemplate;
 
 import java.util.Arrays;
@@ -38,6 +39,8 @@ public interface CacheService {
     }
 
     <R> R loadCache(String key, Supplier<R> supplier, Long time, TimeUnit timeUnit, boolean refresh);
+
+    <R> R loadCacheWithExpireTime(String key, Supplier<LeftRight<R, Date>> supplier, boolean refresh);
 
     default <R> R loadHashCache(String mainKey, String key, Supplier<R> supplier) {
         return loadHashCache(mainKey, key, supplier, false);

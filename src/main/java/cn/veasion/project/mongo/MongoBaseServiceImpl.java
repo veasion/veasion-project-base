@@ -1,6 +1,5 @@
 package cn.veasion.project.mongo;
 
-import cn.hutool.core.collection.CollectionUtil;
 import cn.veasion.db.base.Page;
 import cn.veasion.db.criteria.CommonQueryCriteria;
 import cn.veasion.db.query.OrderParam;
@@ -172,7 +171,7 @@ public abstract class MongoBaseServiceImpl<M, Q extends CommonQueryCriteria> ext
             query.skip(criteria.getSize() * (criteria.getPage() - 1)).limit(criteria.getSize());
         }
         MQueryCriteriaConvert.handleFilters(query, criteria);
-        if (CollectionUtil.isNotEmpty(criteria.getOrders())) {
+        if (criteria.getOrders() != null && criteria.getOrders().size() > 0) {
             for (OrderParam order : criteria.getOrders()) {
                 if (order.isDesc()) {
                     query.with(Sort.by(order.getField()).descending());
