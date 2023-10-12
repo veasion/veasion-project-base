@@ -79,7 +79,7 @@
         <veasion-db.version>1.2.7</veasion-db.version>
         <veasion-db-mybatis.version>1.0.4</veasion-db-mybatis.version>
         <poi.version>5.2.3</poi.version>
-        <netty.version>4.1.75.Final</netty.version>
+        <netty.version>4.1.100.Final</netty.version>
         <fastjson.version>1.2.70</fastjson.version>
         <jjwt.version>0.11.1</jjwt.version>
         <commons-io.version>2.11.0</commons-io.version>

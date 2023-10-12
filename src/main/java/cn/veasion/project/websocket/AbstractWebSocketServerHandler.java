@@ -46,7 +46,8 @@ public abstract class AbstractWebSocketServerHandler extends SimpleChannelInboun
             read(ctx, msg);
         }
         if (msg instanceof PingWebSocketFrame) {
-            ctx.channel().writeAndFlush(new PongWebSocketFrame());
+            PingWebSocketFrame frame = (PingWebSocketFrame) msg;
+            ctx.channel().writeAndFlush(new PongWebSocketFrame(frame.content().retain()));
         }
     }
 

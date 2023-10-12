@@ -23,9 +23,11 @@ import io.netty.handler.codec.http.websocketx.WebSocketClientHandshaker;
 import io.netty.handler.codec.http.websocketx.WebSocketClientHandshakerFactory;
 import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketVersion;
+import io.netty.handler.codec.http.websocketx.extensions.compression.WebSocketClientCompressionHandler;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
+import io.netty.handler.stream.ChunkedWriteHandler;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.concurrent.Future;
 
@@ -47,6 +49,8 @@ public class WebSocketClient {
     private int maxFrameSize = 5 * 1024 * 1024;
     private Map<String, Object> headers;
     private boolean checkHeartbeat;
+    private boolean chunked = true;
+    private boolean supportCompression;
     private Channel channel;
 
     /**
@@ -73,7 +77,7 @@ public class WebSocketClient {
         if (headers != null) {
             headers.forEach(httpHeaders::add);
         }
-        WebSocketClientHandshaker handshaker = WebSocketClientHandshakerFactory.newHandshaker(uri, WebSocketVersion.V13, null, true, httpHeaders, maxFrameSize);
+        WebSocketClientHandshaker handshaker = WebSocketClientHandshakerFactory.newHandshaker(uri, WebSocketVersion.V13, null, false, httpHeaders, maxFrameSize);
         handler.setHandshaker(handshaker);
         EventLoopGroup group = new NioEventLoopGroup();
         try {
@@ -94,7 +98,13 @@ public class WebSocketClient {
                                 pipeline.addLast(new IdleStateHandler(0, 5, 0));
                             }
                             pipeline.addLast(new HttpClientCodec());
+                            if (chunked) {
+                                pipeline.addLast(new ChunkedWriteHandler());
+                            }
                             pipeline.addLast(new HttpObjectAggregator(maxContentLength));
+                            if (supportCompression) {
+                                pipeline.addLast(WebSocketClientCompressionHandler.INSTANCE);
+                            }
                             pipeline.addLast(handler);
                         }
                     });
@@ -127,6 +137,14 @@ public class WebSocketClient {
 
     public void setCheckHeartbeat(boolean checkHeartbeat) {
         this.checkHeartbeat = checkHeartbeat;
+    }
+
+    public void setChunked(boolean chunked) {
+        this.chunked = chunked;
+    }
+
+    public void setSupportCompression(boolean supportCompression) {
+        this.supportCompression = supportCompression;
     }
 
     public void setHeaders(Map<String, Object> headers) {
