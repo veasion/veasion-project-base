@@ -1,6 +1,7 @@
 package cn.veasion.project.aspect;
 
 import cn.veasion.project.BusinessException;
+import cn.veasion.project.eval.EvalAnalysisUtils;
 import cn.veasion.project.session.SessionHelper;
 import cn.veasion.project.utils.RequestHolder;
 import cn.veasion.project.utils.StringUtils;
@@ -58,7 +59,13 @@ public class LimitAspect {
                 Parameter parameter = signatureMethod.getParameters()[i];
                 LimitParam annotation = parameter.getAnnotation(LimitParam.class);
                 if (annotation != null) {
-                    key.append("_").append(joinPoint.getArgs()[i]);
+                    Object arg = joinPoint.getArgs()[i];
+                    String eval = annotation.value();
+                    if ("".equals(eval)) {
+                        key.append("_").append(arg);
+                    } else {
+                        key.append("_").append(EvalAnalysisUtils.parse(eval, arg));
+                    }
                 }
             }
         } else {

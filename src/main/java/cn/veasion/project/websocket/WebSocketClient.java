@@ -50,6 +50,7 @@ public class WebSocketClient {
     private Map<String, Object> headers;
     private boolean checkHeartbeat;
     private boolean chunked = true;
+    private boolean allowExtensions;
     private boolean supportCompression;
     private Channel channel;
 
@@ -77,7 +78,7 @@ public class WebSocketClient {
         if (headers != null) {
             headers.forEach(httpHeaders::add);
         }
-        WebSocketClientHandshaker handshaker = WebSocketClientHandshakerFactory.newHandshaker(uri, WebSocketVersion.V13, null, false, httpHeaders, maxFrameSize);
+        WebSocketClientHandshaker handshaker = WebSocketClientHandshakerFactory.newHandshaker(uri, WebSocketVersion.V13, null, allowExtensions, httpHeaders, maxFrameSize);
         handler.setHandshaker(handshaker);
         EventLoopGroup group = new NioEventLoopGroup();
         try {
@@ -141,6 +142,10 @@ public class WebSocketClient {
 
     public void setChunked(boolean chunked) {
         this.chunked = chunked;
+    }
+
+    public void setAllowExtensions(boolean allowExtensions) {
+        this.allowExtensions = allowExtensions;
     }
 
     public void setSupportCompression(boolean supportCompression) {

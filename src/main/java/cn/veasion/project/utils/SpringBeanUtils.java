@@ -75,8 +75,7 @@ public class SpringBeanUtils implements ApplicationContextAware {
         T result = defaultValue;
         try {
             result = getBean(Environment.class).getProperty(property, clazz);
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (Exception ignored) {
         }
         return result;
     }

@@ -11,4 +11,10 @@ import java.lang.annotation.Target;
 @Target(ElementType.PARAMETER)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface LimitParam {
+
+    /**
+     * EVAL表达式，示例 username
+     */
+    String value() default "";
+
 }
