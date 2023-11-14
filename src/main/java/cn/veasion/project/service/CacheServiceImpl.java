@@ -8,13 +8,17 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.Cursor;
+import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisConnectionUtils;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ScanOptions;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
@@ -33,6 +37,16 @@ import java.util.stream.Stream;
 public class CacheServiceImpl implements CacheService {
 
     protected Logger log = LoggerFactory.getLogger(getClass());
+    private static final String limitLuaScript = "local c" +
+            "\nc = redis.call('get', KEYS[1])" +
+            "\nif c and tonumber(c) > tonumber(ARGV[1]) then" +
+            "\nreturn c;" +
+            "\nend" +
+            "\nc = redis.call('incr', KEYS[1])" +
+            "\nif tonumber(c) == 1 then" +
+            "\nredis.call('expire', KEYS[1], ARGV[2])" +
+            "\nend" +
+            "\nreturn c;";
 
     @Resource
     private RedissonClient redissonClient;
@@ -230,6 +244,31 @@ public class CacheServiceImpl implements CacheService {
     @Override
     public Long incrHash(String mainKey, String key, long l) {
         return redisTemplate.opsForHash().increment(mainKey, key, l);
+    }
+
+    @Override
+    public int incrLimit(String key, int maxCount, int periodOfSeconds) {
+        RedisScript<Number> redisScript = new DefaultRedisScript<>(limitLuaScript, Number.class);
+        Number number = redisTemplate.execute(redisScript, Collections.singletonList(key), maxCount, periodOfSeconds);
+        if (number == null) {
+            return -1;
+        }
+        return number.intValue();
+    }
+
+    @Override
+    public boolean setBit(String key, long offset, boolean value) {
+        return Boolean.TRUE.equals(redisTemplate.execute((RedisCallback<Boolean>) connection -> connection.setBit(key.getBytes(), offset, value)));
+    }
+
+    @Override
+    public boolean getBit(String key, long offset) {
+        return Boolean.TRUE.equals(redisTemplate.execute((RedisCallback<Boolean>) connection -> connection.getBit(key.getBytes(), offset)));
+    }
+
+    @Override
+    public Long getBitTrueCount(String key) {
+        return redisTemplate.execute((RedisCallback<Long>) connection -> connection.bitCount(key.getBytes()));
     }
 
     @Override

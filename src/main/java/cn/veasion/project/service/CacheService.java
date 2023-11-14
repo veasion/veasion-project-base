@@ -82,6 +82,14 @@ public interface CacheService {
 
     Long incrHash(String mainKey, String key, long l);
 
+    int incrLimit(String key, int maxCount, int periodOfSeconds);
+
+    boolean setBit(String key, long offset, boolean value);
+
+    boolean getBit(String key, long offset);
+
+    Long getBitTrueCount(String key);
+
     void delete(String key);
 
     void deleteHash(String mainKey, String key);

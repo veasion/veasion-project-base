@@ -40,9 +40,7 @@ public class FileUtil {
     /**
      * 系统临时目录
      * <br>
-     * windows 包含路径分割符，但Linux 不包含,
-     * 在windows \\==\ 前提下，
-     * 为安全起见 同意拼装 路径分割符，
+     * windows 包含路径分割符，但Linux 不包含，这里统一拼装路径分割符，
      * <pre>
      *       java.io.tmpdir
      *       windows : C:\Users/xxx\AppData\Local\Temp\

@@ -2,6 +2,7 @@ package cn.veasion.project.aspect;
 
 import cn.veasion.project.BusinessException;
 import cn.veasion.project.eval.EvalAnalysisUtils;
+import cn.veasion.project.service.CacheService;
 import cn.veasion.project.session.SessionHelper;
 import cn.veasion.project.utils.RequestHolder;
 import cn.veasion.project.utils.StringUtils;
@@ -10,16 +11,12 @@ import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
 import org.aspectj.lang.reflect.MethodSignature;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.script.DefaultRedisScript;
-import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Component;
 
 import javax.servlet.http.HttpServletRequest;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Objects;
 
 /**
@@ -31,10 +28,10 @@ import java.util.Objects;
 @Component
 public class LimitAspect {
 
-    private final RedisTemplate<String, Object> redisTemplate;
+    private final CacheService cacheService;
 
-    public LimitAspect(RedisTemplate<String, Object> redisTemplate) {
-        this.redisTemplate = redisTemplate;
+    public LimitAspect(CacheService cacheService) {
+        this.cacheService = cacheService;
     }
 
     @Pointcut("@annotation(cn.veasion.project.aspect.Limit)")
@@ -83,34 +80,12 @@ public class LimitAspect {
             Objects.requireNonNull(request, "请求不能为空");
             key.append("_").append(request.getRequestURI().replace("/", "_"));
         }
-        Number count = count(key.toString(), limit.maxCount(), limit.periodOfSeconds());
-        if (null != count && count.longValue() <= limit.maxCount()) {
+        int count = cacheService.incrLimit(key.toString(), limit.maxCount(), limit.periodOfSeconds());
+        if (count <= limit.maxCount()) {
             return joinPoint.proceed();
         } else {
             throw new BusinessException("操作太频繁，请稍后再试");
         }
-    }
-
-    public Number count(String key, int maxCount, int periodOfSeconds) {
-        String luaScript = buildLuaScript();
-        RedisScript<Number> redisScript = new DefaultRedisScript<>(luaScript, Number.class);
-        return redisTemplate.execute(redisScript, Collections.singletonList(key), maxCount, periodOfSeconds);
-    }
-
-    /**
-     * 限流脚本
-     */
-    public static String buildLuaScript() {
-        return "local c" +
-                "\nc = redis.call('get', KEYS[1])" +
-                "\nif c and tonumber(c) > tonumber(ARGV[1]) then" +
-                "\nreturn c;" +
-                "\nend" +
-                "\nc = redis.call('incr', KEYS[1])" +
-                "\nif tonumber(c) == 1 then" +
-                "\nredis.call('expire', KEYS[1], ARGV[2])" +
-                "\nend" +
-                "\nreturn c;";
     }
 
 }

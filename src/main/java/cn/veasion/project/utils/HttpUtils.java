@@ -48,6 +48,11 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -127,6 +132,53 @@ public class HttpUtils {
             request.getHeaders().put(CONTENT_TYPE, CONTENT_TYPE_FORM_DATA);
         }
         return request(request);
+    }
+
+    public static HttpResponse requestWithEventStream(ExecutorService executorService, long firstReadTimeout, HttpRequest request, Consumer<String> dataConsumer) throws Exception {
+        // status: 0 start 1 run 2 timeout
+        AtomicInteger status = new AtomicInteger(0);
+        Future<HttpResponse> submit = executorService.submit(() -> {
+            if (request.getMaxSocketTimeout() == null) {
+                request.setMaxSocketTimeout(30_000);
+            }
+            request.setResponseHandler(entity -> {
+                StringBuilder sb = new StringBuilder();
+                try {
+                    try (InputStream is = entity.getContent()) {
+                        try (BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
+                            String line;
+                            while ((line = bufferedReader.readLine()) != null) {
+                                if (status.get() == 2) {
+                                    throw new TimeoutException();
+                                }
+                                status.set(1);
+                                sb.append(line).append("\n");
+                                if (line.startsWith("data:")) {
+                                    dataConsumer.accept(line.substring(line.startsWith("data: ") ? 6 : 5));
+                                }
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    throw new RuntimeException("eventStream 请求异常", e);
+                }
+                return sb.toString();
+            });
+            return request(request);
+        });
+        try {
+            HttpResponse httpResponse = submit.get(firstReadTimeout, TimeUnit.MILLISECONDS);
+            if (httpResponse != null) {
+                return httpResponse;
+            }
+        } catch (TimeoutException e) {
+            if (status.get() == 0) {
+                status.set(2);
+                submit.cancel(true);
+                throw e;
+            }
+        }
+        return submit.get();
     }
 
     public static HttpResponse requestWithEventStream(HttpRequest request, Consumer<String> dataConsumer) {
@@ -372,7 +424,6 @@ public class HttpUtils {
                     .register("https", new SSLConnectionSocketFactory(context))
                     .build();
         } catch (Exception e) {
-            e.printStackTrace();
             return RegistryBuilder.<ConnectionSocketFactory>create()
                     .register("http", PlainConnectionSocketFactory.getSocketFactory())
                     .register("https", SSLConnectionSocketFactory.getSocketFactory())
