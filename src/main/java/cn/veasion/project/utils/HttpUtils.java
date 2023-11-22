@@ -48,6 +48,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -134,7 +135,7 @@ public class HttpUtils {
         return request(request);
     }
 
-    public static HttpResponse requestWithEventStream(ExecutorService executorService, long firstReadTimeout, HttpRequest request, Consumer<String> dataConsumer) throws Exception {
+    public static HttpResponse requestWithEventStream(ExecutorService executorService, long firstReadTimeout, HttpRequest request, Consumer<String> dataConsumer) throws ExecutionException, InterruptedException, TimeoutException {
         // status: 0 start 1 run 2 timeout
         AtomicInteger status = new AtomicInteger(0);
         Future<HttpResponse> submit = executorService.submit(() -> {

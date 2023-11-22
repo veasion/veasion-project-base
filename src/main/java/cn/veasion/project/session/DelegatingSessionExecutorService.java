@@ -3,6 +3,7 @@ package cn.veasion.project.session;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -11,8 +12,10 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import cn.veasion.project.utils.MessageUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -28,14 +31,20 @@ public class DelegatingSessionExecutorService implements ExecutorService {
 
     private ExecutorService delegate;
     private boolean useSecurityContext;
+    private boolean useLocaleContext;
 
     public DelegatingSessionExecutorService(ExecutorService delegate) {
         this(delegate, false);
     }
 
     public DelegatingSessionExecutorService(ExecutorService delegate, boolean useSecurityContext) {
+        this(delegate, useSecurityContext, false);
+    }
+
+    public DelegatingSessionExecutorService(ExecutorService delegate, boolean useSecurityContext, boolean useLocaleContext) {
         this.delegate = Objects.requireNonNull(delegate);
         this.useSecurityContext = useSecurityContext;
+        this.useLocaleContext = useLocaleContext;
     }
 
     public ExecutorService getDelegate() {
@@ -130,11 +139,20 @@ public class DelegatingSessionExecutorService implements ExecutorService {
         } else {
             context = null;
         }
+        Locale locale;
+        if (useLocaleContext) {
+            locale = MessageUtils.getLocale();
+        } else {
+            locale = null;
+        }
         return () -> {
             try {
                 SessionHelper.setUser(sessionUser);
                 if (useSecurityContext) {
                     SecurityContextHolder.setContext(context);
+                }
+                if (locale != null) {
+                    LocaleContextHolder.setLocale(locale);
                 }
                 runnable.run();
             } catch (Exception e) {
@@ -144,6 +162,9 @@ public class DelegatingSessionExecutorService implements ExecutorService {
                 SessionHelper.clear();
                 if (useSecurityContext) {
                     SecurityContextHolder.clearContext();
+                }
+                if (locale != null) {
+                    LocaleContextHolder.resetLocaleContext();
                 }
             }
         };
@@ -161,11 +182,20 @@ public class DelegatingSessionExecutorService implements ExecutorService {
         } else {
             context = null;
         }
+        Locale locale;
+        if (useLocaleContext) {
+            locale = MessageUtils.getLocale();
+        } else {
+            locale = null;
+        }
         return () -> {
             try {
                 SessionHelper.setUser(sessionUser);
                 if (useSecurityContext) {
                     SecurityContextHolder.setContext(context);
+                }
+                if (locale != null) {
+                    LocaleContextHolder.setLocale(locale);
                 }
                 return callable.call();
             } catch (Exception e) {
@@ -175,6 +205,9 @@ public class DelegatingSessionExecutorService implements ExecutorService {
                 SessionHelper.clear();
                 if (useSecurityContext) {
                     SecurityContextHolder.clearContext();
+                }
+                if (locale != null) {
+                    LocaleContextHolder.resetLocaleContext();
                 }
             }
         };
