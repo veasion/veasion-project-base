@@ -1,5 +1,7 @@
 package cn.veasion.project.utils;
 
+import org.springframework.beans.BeanUtils;
+
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -18,6 +20,31 @@ import java.util.function.Function;
  * @date 2022/11/1
  */
 public class CommonUtils {
+
+    public static <T> T copy(Object object, Class<T> clazz) {
+        try {
+            T instance = clazz.newInstance();
+            BeanUtils.copyProperties(object, instance);
+            return instance;
+        } catch (InstantiationException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static <T> List<T> copy(List<?> list, Class<T> clazz) {
+        List<T> result = new ArrayList<>(list.size());
+        try {
+            T instance;
+            for (Object object : list) {
+                instance = clazz.newInstance();
+                BeanUtils.copyProperties(object, instance);
+                result.add(instance);
+            }
+        } catch (InstantiationException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+        return result;
+    }
 
     public static boolean isEmpty(Collection<?> collection) {
         return collection == null || collection.isEmpty();

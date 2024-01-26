@@ -14,9 +14,12 @@ import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
 import org.aspectj.lang.reflect.MethodSignature;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.PrintWriter;
@@ -34,6 +37,7 @@ import java.util.Objects;
 @Component
 public class LogAspect {
 
+    private final static Logger logger = LoggerFactory.getLogger(LogAspect.class);
     private final ThreadLocal<Long> currentTime = new ThreadLocal<>();
 
     /**
@@ -83,25 +87,29 @@ public class LogAspect {
     }
 
     private void saveLog(SysLogVO log, ProceedingJoinPoint joinPoint) {
-        HttpServletRequest request = Objects.requireNonNull(RequestHolder.getHttpServletRequest());
-        String ip = StringUtils.getIp(request);
-        String browser = request.getHeader("User-Agent");
-        MethodSignature signature = (MethodSignature) joinPoint.getSignature();
-        Method method = signature.getMethod();
-        Log aopLog = method.getAnnotation(Log.class);
-        String methodName = joinPoint.getTarget().getClass().getName() + "." + signature.getName() + "()";
-        log.setDescription(aopLog.value());
-        log.setRequestIp(ip);
-        log.setMethod(methodName);
-        log.setParams(getParameter(method, joinPoint.getArgs()));
-        log.setBrowser(browser);
-        log.setUsername(SessionHelper.getUserName());
-        log.setCompanyId(SessionHelper.getCompanyId());
-        SysLogService sysLogService = SpringBeanUtils.getBean(SysLogService.class);
-        if (sysLogService != null) {
-            sysLogService.asyncSaveLog(log);
-        } else {
-            throw new RuntimeException("SysLogService 未找到实现类");
+        try {
+            HttpServletRequest request = Objects.requireNonNull(RequestHolder.getHttpServletRequest());
+            String ip = StringUtils.getIp(request);
+            String browser = request.getHeader("User-Agent");
+            MethodSignature signature = (MethodSignature) joinPoint.getSignature();
+            Method method = signature.getMethod();
+            Log aopLog = method.getAnnotation(Log.class);
+            String methodName = joinPoint.getTarget().getClass().getName() + "." + signature.getName() + "()";
+            log.setDescription(aopLog.value());
+            log.setRequestIp(ip);
+            log.setMethod(methodName);
+            log.setParams(getParameter(method, joinPoint.getArgs()));
+            log.setBrowser(browser);
+            log.setUsername(SessionHelper.getUserName());
+            log.setCompanyId(SessionHelper.getCompanyId());
+            SysLogService sysLogService = SpringBeanUtils.getBean(SysLogService.class);
+            if (sysLogService != null) {
+                sysLogService.asyncSaveLog(log);
+            } else {
+                logger.error("SysLogService 未找到实现类");
+            }
+        } catch (Exception e) {
+            logger.error("{} 保存日志异常", log.getMethod(), e);
         }
     }
 
@@ -109,6 +117,9 @@ public class LogAspect {
         List<Object> argList = new ArrayList<>();
         Parameter[] parameters = method.getParameters();
         for (int i = 0; i < parameters.length; i++) {
+            if (args[i] instanceof MultipartFile) {
+                continue;
+            }
             RequestBody requestBody = parameters[i].getAnnotation(RequestBody.class);
             if (requestBody != null) {
                 argList.add(args[i]);

@@ -37,6 +37,9 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
+import java.net.HttpURLConnection;
+import java.net.SocketException;
+import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
@@ -76,7 +79,8 @@ public class HttpUtils {
     static {
         CONNECTION_MANAGER = new PoolingHttpClientConnectionManager(getDefaultRegistry());
         CONNECTION_MANAGER.setMaxTotal(500);
-        CONNECTION_MANAGER.setDefaultMaxPerRoute(100);
+        CONNECTION_MANAGER.setDefaultMaxPerRoute(50);
+        CONNECTION_MANAGER.setValidateAfterInactivity(2000);
     }
 
     public static HttpResponse get(String url) {
@@ -208,6 +212,22 @@ public class HttpUtils {
         return request(request);
     }
 
+    public static int getUrlHttpStatus(String _url) {
+        HttpURLConnection urlConnection = null;
+        try {
+            URL url = new URL(_url);
+            urlConnection = (HttpURLConnection) url.openConnection();
+            urlConnection.connect();
+            return urlConnection.getResponseCode();
+        } catch (Exception ignored) {
+            return -1;
+        } finally {
+            if (urlConnection != null) {
+                urlConnection.disconnect();
+            }
+        }
+    }
+
     public static String getUrlLinks(Map<String, Object> params) {
         if (params == null || params.isEmpty()) {
             return null;
@@ -217,7 +237,7 @@ public class HttpUtils {
             String[] sortedKeys = params.keySet().toArray(new String[0]);
             Arrays.sort(sortedKeys);
             for (String key : sortedKeys) {
-                if (key == null || key.length() == 0) {
+                if (key == null || key.isEmpty()) {
                     continue;
                 }
                 Object value = params.get(key);
@@ -270,6 +290,10 @@ public class HttpUtils {
      * 通用接口请求
      */
     public static HttpResponse request(HttpRequest request) {
+        return request(request, 0);
+    }
+
+    private static HttpResponse request(HttpRequest request, int retryCount) {
         HttpRequestBase requestBase = toRequest(request);
         Map<String, String> headers = request.getHeaders();
         ContentType contentType = null;
@@ -324,7 +348,14 @@ public class HttpUtils {
             return httpResponse;
         } catch (Exception e) {
             requestBase.abort();
-            throw new RuntimeException("请求异常", e);
+            if (request.getMaxRetryCount() > retryCount) {
+                return request(request, retryCount + 1);
+            } else if (e instanceof SocketException && "Connection reset".equals(e.getMessage()) && retryCount == 0 && request.getMaxRetryCount() == 0) {
+                // 遇到 Connection reset 默认重试一次
+                return request(request, retryCount + 1);
+            } else {
+                throw new RuntimeException("请求异常", e);
+            }
         } finally {
             requestBase.releaseConnection();
         }
@@ -393,13 +424,16 @@ public class HttpUtils {
         }
         customReqConf.setConnectTimeout(MAX_CONNECT_TIMEOUT);
         customReqConf.setConnectionRequestTimeout(MAX_CONNECT_TIMEOUT);
+        if (req.getRequestConfigConsumer() != null) {
+            req.getRequestConfigConsumer().accept(customReqConf);
+        }
         request.setConfig(customReqConf.build());
         return HttpClients.custom().setConnectionManager(CONNECTION_MANAGER).build();
     }
 
     private static Registry<ConnectionSocketFactory> getDefaultRegistry() {
         try {
-            // ssl
+            // ssl: TLS / TLSv1.2 / TLSv1.3
             SSLContext context = SSLContext.getInstance("TLS");
             context.init(null, new X509TrustManager[]{new X509TrustManager() {
                 public void checkClientTrusted(X509Certificate[] x509Certificates, String s) {
@@ -466,7 +500,9 @@ public class HttpUtils {
         private String method;
         private Map<String, String> headers;
         private Object body;
+        private int maxRetryCount = 0;
         private Integer maxSocketTimeout;
+        private Consumer<RequestConfig.Builder> requestConfigConsumer;
         private Function<HttpEntity, Object> responseHandler;
 
         public static HttpRequest build(String url, String method) {
@@ -540,6 +576,14 @@ public class HttpUtils {
             return this;
         }
 
+        public void setMaxRetryCount(int maxRetryCount) {
+            this.maxRetryCount = maxRetryCount;
+        }
+
+        public int getMaxRetryCount() {
+            return maxRetryCount;
+        }
+
         public HttpRequest setMaxSocketTimeout(Integer maxSocketTimeout) {
             this.maxSocketTimeout = maxSocketTimeout;
             return this;
@@ -547,6 +591,14 @@ public class HttpUtils {
 
         public Integer getMaxSocketTimeout() {
             return maxSocketTimeout;
+        }
+
+        public Consumer<RequestConfig.Builder> getRequestConfigConsumer() {
+            return requestConfigConsumer;
+        }
+
+        public void setRequestConfigConsumer(Consumer<RequestConfig.Builder> requestConfigConsumer) {
+            this.requestConfigConsumer = requestConfigConsumer;
         }
 
         public Function<HttpEntity, Object> getResponseHandler() {
