@@ -69,23 +69,23 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
         <slf4j-api.version>1.7.22</slf4j-api.version>
-        <spring-boot.version>2.6.5</spring-boot.version>
-        <spring.version>5.3.17</spring.version>
-        <spring-data.version>3.3.3</spring-data.version>
-        <spring-data-redis.version>2.6.0</spring-data-redis.version>
-        <spring-security.version>5.6.2</spring-security.version>
+        <spring-boot.version>2.7.5</spring-boot.version>
+        <spring.version>5.3.23</spring.version>
+        <spring-data-mongodb.version>3.4.5</spring-data-mongodb.version>
+        <spring-data-redis.version>2.7.5</spring-data-redis.version>
+        <spring-security.version>5.7.4</spring-security.version>
         <aspectjweaver.version>1.9.7</aspectjweaver.version>
-        <redisson.version>3.17.0</redisson.version>
+        <redisson.version>3.17.7</redisson.version>
         <veasion-db.version>1.2.7</veasion-db.version>
         <veasion-db-mybatis.version>1.0.4</veasion-db-mybatis.version>
         <poi.version>5.2.3</poi.version>
         <netty.version>4.1.100.Final</netty.version>
-        <fastjson.version>1.2.70</fastjson.version>
+        <fastjson.version>1.2.83</fastjson.version>
         <jjwt.version>0.11.1</jjwt.version>
         <commons-io.version>2.11.0</commons-io.version>
         <httpclient.version>4.5.14</httpclient.version>
-        <commons-pool2.version>2.11.0</commons-pool2.version>
-        <commons-lang3.version>3.12.0</commons-lang3.version>
+        <commons-pool2.version>2.12.0</commons-pool2.version>
+        <commons-lang3.version>3.14.0</commons-lang3.version>
     </properties>
 
     <dependencies>
@@ -145,7 +145,7 @@
         <dependency>
             <groupId>org.springframework.data</groupId>
             <artifactId>spring-data-mongodb</artifactId>
-            <version>${spring-data.version}</version>
+            <version>${spring-data-mongodb.version}</version>
             <optional>true</optional>
             <scope>provided</scope>
         </dependency>
