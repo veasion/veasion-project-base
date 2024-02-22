@@ -78,11 +78,11 @@
         <redisson.version>3.17.7</redisson.version>
         <veasion-db.version>1.2.7</veasion-db.version>
         <veasion-db-mybatis.version>1.0.4</veasion-db-mybatis.version>
-        <poi.version>5.2.3</poi.version>
+        <poi.version>5.2.5</poi.version>
         <netty.version>4.1.100.Final</netty.version>
         <fastjson.version>1.2.83</fastjson.version>
         <jjwt.version>0.11.1</jjwt.version>
-        <commons-io.version>2.11.0</commons-io.version>
+        <commons-io.version>2.15.0</commons-io.version>
         <httpclient.version>4.5.14</httpclient.version>
         <commons-pool2.version>2.12.0</commons-pool2.version>
         <commons-lang3.version>3.14.0</commons-lang3.version>
