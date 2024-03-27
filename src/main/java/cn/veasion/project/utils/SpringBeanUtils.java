@@ -89,4 +89,17 @@ public class SpringBeanUtils implements ApplicationContextAware {
         return applicationContext;
     }
 
+    public static <T> boolean putBean(Class<? super T> clazz, T bean) {
+        if (applicationContext != null) {
+            return false;
+        }
+        if (CACHE_MAP.containsKey(clazz)) {
+            return false;
+        }
+        synchronized (CACHE_MAP) {
+            CACHE_MAP.put(clazz, bean);
+            return true;
+        }
+    }
+
 }

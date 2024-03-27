@@ -140,6 +140,10 @@ public class HttpUtils {
     }
 
     public static HttpResponse requestWithEventStream(ExecutorService executorService, long firstReadTimeout, HttpRequest request, Consumer<String> dataConsumer) throws ExecutionException, InterruptedException, TimeoutException {
+        return requestWithEventStream(executorService, firstReadTimeout, request, dataConsumer, null);
+    }
+
+    public static HttpResponse requestWithEventStream(ExecutorService executorService, long firstReadTimeout, HttpRequest request, Consumer<String> dataConsumer, Consumer<Future<?>> futureConsumer) throws ExecutionException, InterruptedException, TimeoutException {
         // status: 0 start 1 run 2 timeout
         AtomicInteger status = new AtomicInteger(0);
         Future<HttpResponse> submit = executorService.submit(() -> {
@@ -171,6 +175,9 @@ public class HttpUtils {
             });
             return request(request);
         });
+        if (futureConsumer != null) {
+            futureConsumer.accept(submit);
+        }
         try {
             HttpResponse httpResponse = submit.get(firstReadTimeout, TimeUnit.MILLISECONDS);
             if (httpResponse != null) {
