@@ -66,7 +66,7 @@ public class ThirdConfigUtils {
                 try (InputStream is = Files.newInputStream(file.toPath())) {
                     ext_properties.load(new InputStreamReader(is, CHARSET));
                 }
-                if (ext_properties.size() > 0) {
+                if (!ext_properties.isEmpty()) {
                     for (Map.Entry<Object, Object> entry : ext_properties.entrySet()) {
                         config.put(entry.getKey().toString(), entry.getValue() == null ? null : entry.getValue().toString());
                     }
@@ -84,7 +84,14 @@ public class ThirdConfigUtils {
     public synchronized static Map<String, String> load(String filename, String path) {
         try {
             Map<String, String> config = null;
-            try (InputStream is = ThirdConfigUtils.class.getClassLoader().getResourceAsStream(path)) {
+            File file = new File(path);
+            InputStream is;
+            if (file.exists()) {
+                is = Files.newInputStream(file.toPath());
+            } else {
+                is = ThirdConfigUtils.class.getClassLoader().getResourceAsStream(path);
+            }
+            try {
                 if (is != null) {
                     filenamePathMap.compute(filename, (k, v) -> {
                         v = new HashSet<>();
@@ -99,6 +106,10 @@ public class ThirdConfigUtils {
                         String value = entry.getValue() == null ? null : entry.getValue().toString();
                         config.put(key, value);
                     }
+                }
+            } finally {
+                if (is != null) {
+                    is.close();
                 }
             }
             return config;

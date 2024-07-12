@@ -33,9 +33,10 @@ import org.slf4j.LoggerFactory;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
-import java.io.FileInputStream;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.KeyStore;
 import java.util.Map;
 import java.util.Objects;
@@ -238,13 +239,14 @@ public class WebSocketServer {
 
     public void setSslContext(String type, String path, String password) throws Exception {
         KeyStore keyStore = KeyStore.getInstance(type); // JKS
-        InputStream inputStream = new FileInputStream(path); // 证书存放地址
-        keyStore.load(inputStream, password.toCharArray());
-        KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-        keyManagerFactory.init(keyStore, password.toCharArray());
-        SSLContext sslContext = SSLContext.getInstance("TLS");
-        sslContext.init(keyManagerFactory.getKeyManagers(), null, null);
-        setSslContext(sslContext);
+        try (InputStream inputStream = Files.newInputStream(Paths.get(path))) { // 证书存放地址
+            keyStore.load(inputStream, password.toCharArray());
+            KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+            keyManagerFactory.init(keyStore, password.toCharArray());
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(keyManagerFactory.getKeyManagers(), null, null);
+            setSslContext(sslContext);
+        }
     }
 
     public void setMaxFrameSize(int maxFrameSize) {

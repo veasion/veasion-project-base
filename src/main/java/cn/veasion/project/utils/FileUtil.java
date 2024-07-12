@@ -1,5 +1,6 @@
 package cn.veasion.project.utils;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -510,7 +511,11 @@ public class FileUtil {
     }
 
     public static String getMd5(File file) {
-        return getMd5(getByte(file));
+        try (InputStream inputStream = Files.newInputStream(file.toPath())) {
+            return DigestUtils.md5Hex(inputStream);
+        } catch (IOException e) {
+            throw new RuntimeException("md5异常", e);
+        }
     }
 
 }

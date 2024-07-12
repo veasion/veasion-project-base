@@ -37,9 +37,12 @@ public class ExcelImportUtils {
     }
 
     public static JSONArray parse(InputStream is, Map<String, String> fieldMap) throws IOException {
-        XSSFWorkbook workbook = new XSSFWorkbook(is);
-        XSSFSheet sheet = workbook.getSheetAt(0);
-        return parse(sheet, fieldMap);
+        try (XSSFWorkbook workbook = new XSSFWorkbook(is)) {
+            XSSFSheet sheet = workbook.getSheetAt(0);
+            return parse(sheet, fieldMap);
+        } finally {
+            is.close();
+        }
     }
 
     public static JSONArray parse(XSSFSheet sheet, Map<String, String> fieldMap) {
