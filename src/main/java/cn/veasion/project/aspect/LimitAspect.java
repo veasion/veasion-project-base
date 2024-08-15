@@ -11,6 +11,8 @@ import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
 import org.aspectj.lang.reflect.MethodSignature;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import javax.servlet.http.HttpServletRequest;
@@ -27,6 +29,8 @@ import java.util.Objects;
 @Aspect
 @Component
 public class LimitAspect {
+
+    private final static Logger logger = LoggerFactory.getLogger(LimitAspect.class);
 
     private final CacheService cacheService;
 
@@ -84,6 +88,7 @@ public class LimitAspect {
         if (count <= limit.maxCount()) {
             return joinPoint.proceed();
         } else {
+            logger.warn("{} 操作太频繁，限流", key);
             throw new BusinessException("操作太频繁，请稍后再试");
         }
     }

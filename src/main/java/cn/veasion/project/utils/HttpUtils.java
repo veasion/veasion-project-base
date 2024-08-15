@@ -6,8 +6,12 @@ import org.apache.commons.io.IOUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpEntityEnclosingRequest;
-import org.apache.http.client.HttpClient;
+import org.apache.http.HttpHost;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPatch;
@@ -24,8 +28,11 @@ import org.apache.http.entity.ContentType;
 import org.apache.http.entity.FileEntity;
 import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
+import org.apache.http.util.EntityUtils;
 import org.springframework.util.StringUtils;
 
 import javax.net.ssl.SSLContext;
@@ -33,6 +40,7 @@ import javax.net.ssl.X509TrustManager;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Serializable;
@@ -317,15 +325,13 @@ public class HttpUtils {
                 requestBase.setHeader(key, value);
             }
         }
-
-        // body
         setBodyEntity(requestBase, contentType, request.getBody());
-
+        CloseableHttpClient httpClient = null;
+        CloseableHttpResponse response = null;
         try {
-            HttpClient client = getHttpClient(request, requestBase);
-            org.apache.http.HttpResponse response;
+            httpClient = getHttpClient(request, requestBase);
             long startTime = System.currentTimeMillis();
-            response = client.execute(requestBase);
+            response = httpClient.execute(requestBase);
             HttpResponse httpResponse = new HttpResponse();
             httpResponse.setReqTime(System.currentTimeMillis() - startTime);
             httpResponse.setStatus(response.getStatusLine().getStatusCode());
@@ -364,7 +370,22 @@ public class HttpUtils {
                 throw new RuntimeException("请求异常", e);
             }
         } finally {
-            requestBase.releaseConnection();
+            if (httpClient != null && request.getHttpProxy() != null && request.getHttpProxy().getProxy() != null) {
+                try {
+                    // 代理不走连接池，直接关闭
+                    httpClient.close();
+                } catch (IOException ignored) {
+                }
+            } else {
+                if (response != null) {
+                    try {
+                        EntityUtils.consume(response.getEntity());
+                    } catch (IOException ignored) {
+                    }
+                }
+                // 释放链接到连接池
+                requestBase.releaseConnection();
+            }
         }
     }
 
@@ -422,7 +443,7 @@ public class HttpUtils {
         }
     }
 
-    private static HttpClient getHttpClient(HttpRequest req, HttpRequestBase request) {
+    private static CloseableHttpClient getHttpClient(HttpRequest req, HttpRequestBase request) {
         RequestConfig.Builder customReqConf = RequestConfig.custom();
         if (req.getMaxSocketTimeout() != null) {
             customReqConf.setSocketTimeout(req.getMaxSocketTimeout());
@@ -435,7 +456,25 @@ public class HttpUtils {
             req.getRequestConfigConsumer().accept(customReqConf);
         }
         request.setConfig(customReqConf.build());
-        return HttpClients.custom().setConnectionManager(CONNECTION_MANAGER).build();
+        HttpProxy httpProxy = req.getHttpProxy();
+        if (httpProxy != null && httpProxy.getProxy() != null) {
+            HttpHost proxy = HttpHost.create(httpProxy.getProxy());
+            CredentialsProvider credsProvider = null;
+            if (httpProxy.getUsername() != null && httpProxy.getPassword() != null) {
+                // header
+                // Proxy-Authorization: Basic base64(username + ":" + password)
+                credsProvider = new BasicCredentialsProvider();
+                credsProvider.setCredentials(
+                        new AuthScope(proxy),
+                        new UsernamePasswordCredentials(httpProxy.getUsername(), httpProxy.getPassword())
+                );
+            }
+            // 有代理时不走连接池
+            return HttpClients.custom().setProxy(proxy).setDefaultCredentialsProvider(credsProvider).build();
+        } else {
+            // 走连接池
+            return HttpClients.custom().setConnectionManager(CONNECTION_MANAGER).build();
+        }
     }
 
     private static Registry<ConnectionSocketFactory> getDefaultRegistry() {
@@ -501,7 +540,50 @@ public class HttpUtils {
         return sb.toString();
     }
 
-    public static class HttpRequest implements Serializable {
+    public static class HttpProxy {
+        private String proxy;
+        private String username;
+        private String password;
+
+        public HttpProxy() {
+        }
+
+        public HttpProxy(String proxy) {
+            this.proxy = proxy;
+        }
+
+        public HttpProxy(String proxy, String username, String password) {
+            this.proxy = proxy;
+            this.username = username;
+            this.password = password;
+        }
+
+        public String getProxy() {
+            return proxy;
+        }
+
+        public void setProxy(String proxy) {
+            this.proxy = proxy;
+        }
+
+        public String getUsername() {
+            return username;
+        }
+
+        public void setUsername(String username) {
+            this.username = username;
+        }
+
+        public String getPassword() {
+            return password;
+        }
+
+        public void setPassword(String password) {
+            this.password = password;
+        }
+    }
+
+    public static class HttpRequest {
 
         private String url;
         private String method;
@@ -509,6 +591,7 @@ public class HttpUtils {
         private Object body;
         private int maxRetryCount = 0;
         private Integer maxSocketTimeout;
+        private HttpProxy httpProxy;
         private Consumer<RequestConfig.Builder> requestConfigConsumer;
         private Function<HttpEntity, Object> responseHandler;
 
@@ -583,8 +666,9 @@ public class HttpUtils {
             return this;
         }
 
-        public void setMaxRetryCount(int maxRetryCount) {
+        public HttpRequest setMaxRetryCount(int maxRetryCount) {
             this.maxRetryCount = maxRetryCount;
+            return this;
         }
 
         public int getMaxRetryCount() {
@@ -600,12 +684,22 @@ public class HttpUtils {
             return maxSocketTimeout;
         }
 
+        public HttpProxy getHttpProxy() {
+            return httpProxy;
+        }
+
+        public HttpRequest setHttpProxy(HttpProxy httpProxy) {
+            this.httpProxy = httpProxy;
+            return this;
+        }
+
         public Consumer<RequestConfig.Builder> getRequestConfigConsumer() {
             return requestConfigConsumer;
         }
 
-        public void setRequestConfigConsumer(Consumer<RequestConfig.Builder> requestConfigConsumer) {
+        public HttpRequest setRequestConfigConsumer(Consumer<RequestConfig.Builder> requestConfigConsumer) {
             this.requestConfigConsumer = requestConfigConsumer;
+            return this;
         }
 
         public Function<HttpEntity, Object> getResponseHandler() {
