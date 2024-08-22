@@ -37,7 +37,7 @@ public class RequestHolder {
 
     public static String getDomainUrl(HttpServletRequest request) {
         String _url = request.getRequestURL().toString();
-        boolean isHttps = _url.startsWith("https") || _url.contains(":443/");
+        boolean isHttps = _url.startsWith("https") || _url.contains(":443/") || "https".equals(request.getHeader("X-Forwarded-Proto"));
         return (isHttps ? "https://" : "http://") + getDomain(request);
     }
 
@@ -51,7 +51,8 @@ public class RequestHolder {
         StringBuffer requestURL = request.getRequestURL();
         int end = requestURL.indexOf("/", 10);
         String domain = end > -1 ? requestURL.substring(0, end) : requestURL.substring(0);
-        if (domain.endsWith(":443")) {
+        boolean isHttps = domain.endsWith(":443") || "https".equals(request.getHeader("X-Forwarded-Proto"));
+        if (isHttps) {
             domain = domain.replace(":443", "").replace("http://", "https://");
         }
         String contextPath = request.getContextPath() != null ? request.getContextPath() : "";
