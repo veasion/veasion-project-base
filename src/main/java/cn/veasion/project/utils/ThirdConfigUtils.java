@@ -1,9 +1,11 @@
 package cn.veasion.project.utils;
 
 import cn.veasion.db.utils.TypeUtils;
+import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -24,7 +26,7 @@ public class ThirdConfigUtils {
 
     private final static Logger LOGGER = LoggerFactory.getLogger(ThirdConfigUtils.class);
 
-    public static String CHARSET = "GBK";
+    public static String CHARSET = null;
     public static String DEFAULT_PATH = "third.properties";
     public static String EXT_PATH_KEY = "extConfigPath";
     private static final Map<String, Set<String>> filenamePathMap;
@@ -64,7 +66,13 @@ public class ThirdConfigUtils {
                 }
                 Properties ext_properties = new Properties();
                 try (InputStream is = Files.newInputStream(file.toPath())) {
-                    ext_properties.load(new InputStreamReader(is, CHARSET));
+                    if (CHARSET != null) {
+                        ext_properties.load(new InputStreamReader(is, CHARSET));
+                    } else {
+                        byte[] bytes = IOUtils.toByteArray(is);
+                        String charset = FileUtil.autoTextCharset(bytes);
+                        ext_properties.load(new InputStreamReader(new ByteArrayInputStream(bytes), charset));
+                    }
                 }
                 if (!ext_properties.isEmpty()) {
                     for (Map.Entry<Object, Object> entry : ext_properties.entrySet()) {
@@ -100,7 +108,13 @@ public class ThirdConfigUtils {
                     });
                     config = filenameConfig.computeIfAbsent(filename, k -> new HashMap<>());
                     Properties properties = new Properties();
-                    properties.load(new InputStreamReader(is, CHARSET));
+                    if (CHARSET != null) {
+                        properties.load(new InputStreamReader(is, CHARSET));
+                    } else {
+                        byte[] bytes = IOUtils.toByteArray(is);
+                        String charset = FileUtil.autoTextCharset(bytes);
+                        properties.load(new InputStreamReader(new ByteArrayInputStream(bytes), charset));
+                    }
                     for (Map.Entry<Object, Object> entry : properties.entrySet()) {
                         String key = entry.getKey().toString();
                         String value = entry.getValue() == null ? null : entry.getValue().toString();

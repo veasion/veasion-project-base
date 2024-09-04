@@ -518,4 +518,50 @@ public class FileUtil {
         }
     }
 
+    public static String autoTextCharset(byte[] bytes) {
+        String charset = "GBK"; // ANSI
+        if (bytes[0] == -1 && bytes[1] == -2) {
+            // UTF-16
+            charset = "UTF-16";
+        } else if (bytes[0] == -2 && bytes[1] == -1) {
+            // UCS2-Big-Endian 或 UCS2-Little-Endian
+            charset = "Unicode";
+        } else if (bytes[0] == -27 && bytes[1] == -101 && bytes[2] == -98) {
+            // UTF-8
+            charset = "UTF-8";
+        } else if (bytes[0] == -17 && bytes[1] == -69 && bytes[2] == -65) {
+            // UTF-8 (BOM)
+            charset = "UTF-8";
+        } else {
+            for (int i = 0; i < bytes.length - 2; i++) {
+                int read = bytes[i] & 0xFF;
+                if (read >= 0xF0) {
+                    break;
+                }
+                if (0x80 <= read && read <= 0xBF) {
+                    break;
+                }
+                if (0xC0 <= read && read <= 0xDF) {
+                    int next = bytes[i + 1] & 0xFF;
+                    if (0x80 <= next && next <= 0xBF) {
+                        continue;
+                    } else {
+                        break;
+                    }
+                } else if (0xE0 <= read) {
+                    // 有可能误判（概率比较小）
+                    int next = bytes[i + 1] & 0xFF;
+                    if (0x80 <= next && next <= 0xBF) {
+                        next = bytes[i + 2] & 0xFF;
+                        if (0x80 <= next && next <= 0xBF) {
+                            charset = "UTF-8";
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+        return charset;
+    }
+
 }
